@@ -45,11 +45,11 @@ namespace BMC.CCTVSecurity
         private IReadOnlyList<ISkillExecutionDevice> m_availableExecutionDevices = null;
 
         // Misc
-        private BoundingBoxRenderer[] m_bboxRenderer = new BoundingBoxRenderer [DataConfig.CCTVCount];
+        private BoundingBoxRenderer[] m_bboxRenderer = new BoundingBoxRenderer[DataConfig.CCTVCount];
         private HashSet<ObjectKind> m_objectKinds = null;
 
         // Frames
-        private SoftwareBitmapSource[] m_processedBitmapSource = new  SoftwareBitmapSource[DataConfig.CCTVCount];
+        private SoftwareBitmapSource[] m_processedBitmapSource = new SoftwareBitmapSource[DataConfig.CCTVCount];
 
         // Performance metrics
         private Stopwatch m_evalStopwatch = new Stopwatch();
@@ -64,11 +64,11 @@ namespace BMC.CCTVSecurity
         {
             this.InitializeComponent();
         }
-       
+
         private async void Page_Loaded(object sender, RoutedEventArgs e)
         {
 
-          
+
             m_processedBitmapSource[0] = new SoftwareBitmapSource();
             CCTV1.Source = m_processedBitmapSource[0];
 
@@ -99,7 +99,7 @@ namespace BMC.CCTVSecurity
 
             // Ready to begin, enable buttons
             NotifyUser("Skill initialized. Select a media source from the top to begin.");
-            Loop();   
+            Loop();
         }
         /// <summary>
         /// Initialize the ObjectDetector skill
@@ -168,7 +168,7 @@ namespace BMC.CCTVSecurity
                 }
                 else
                 {
-                    
+
                     // Display available execution devices
                     UISkillExecutionDevices.ItemsSource = m_availableExecutionDevices.Select((device) => $"{device.ExecutionDeviceKind} | {device.Name}");
 
@@ -197,79 +197,74 @@ namespace BMC.CCTVSecurity
         async Task Loop()
         {
             //int index = 0;
-
+            Random rnd = new Random(Environment.TickCount);
             while (true)
             {
                 //index = 0;
-                for(int index=0;index<DataConfig.CCTVCount;index++)
+                for (int index = 0; index < DataConfig.CCTVCount; index++)
                 //Parallel.For(0, 3, async(index) =>
                 {
-                    var itemUrl = DataConfig.CCTVURL[index];
-                    var data = await client.GetByteArrayAsync(itemUrl);
-                    //BitmapImage bmp = new BitmapImage();
-                    SoftwareBitmap outputBitmap = null;
-                    using (InMemoryRandomAccessStream stream = new InMemoryRandomAccessStream())
+                    try
                     {
-                        await stream.WriteAsync(data.AsBuffer());
-                        stream.Seek(0);
-                        //await bmp.SetSourceAsync(stream);
-                        //new
-                        ImageEncodingProperties properties = ImageEncodingProperties.CreateJpeg();
+                        var itemUrl = DataConfig.CCTVURL[index];
 
-                        var decoder = await BitmapDecoder.CreateAsync(stream);
-                        outputBitmap = await decoder.GetSoftwareBitmapAsync();
-                    }
-
-                    if (outputBitmap != null)
-                    {
-                        try
+                        var data = await client.GetByteArrayAsync(itemUrl + rnd.Next(100));
+                        //BitmapImage bmp = new BitmapImage();
+                        SoftwareBitmap outputBitmap = null;
+                        using (InMemoryRandomAccessStream stream = new InMemoryRandomAccessStream())
                         {
+                            await stream.WriteAsync(data.AsBuffer());
+                            stream.Seek(0);
+                            //await bmp.SetSourceAsync(stream);
+                            //new
+                            ImageEncodingProperties properties = ImageEncodingProperties.CreateJpeg();
+
+                            var decoder = await BitmapDecoder.CreateAsync(stream);
+                            outputBitmap = await decoder.GetSoftwareBitmapAsync();
+                        }
+
+                        if (outputBitmap != null)
+                        {
+
                             //SoftwareBitmap outputBitmap = SoftwareBitmap.CreateCopyFromBuffer(data.AsBuffer(), BitmapPixelFormat.Bgra8, bmp.PixelWidth, bmp.PixelHeight, BitmapAlphaMode.Premultiplied);
                             SoftwareBitmap displayableImage = SoftwareBitmap.Convert(outputBitmap, BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied);
                             VideoFrame frame = VideoFrame.CreateWithSoftwareBitmap(displayableImage);
                             //do evaluation
                             await ExecuteFrame(frame, index);
-                            //if (m_lock.Wait(0))
-                            //{
-#pragma warning disable CS4014
-                                // Purposely don't await this: want handler to exit ASAP
-                                // so that realtime capture doesn't wait for completion.
-                                // Instead, we unlock only when processing finishes ensuring that
-                                // only one execution is active at a time, dropping frames or
-                                // aborting skill runs as necessary
-                                
-#pragma warning restore CS4014
-                            //}
+
+
                         }
-                        catch (Exception ex)
-                        {
-                            Debug.WriteLine(ex);
-                        }
+
                     }
-
-
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine(ex);
+                    }
                 }
-                Thread.Sleep(3000);
+                Thread.Sleep(DataConfig.EvalInterval);
             }
 
-            async Task ExecuteFrame(VideoFrame CurFrame, int CurIndex)
-            {
-                try
-                {
+        }
 
-                    await DetectObjectsAsync(CurFrame);
-                    await DisplayFrameAndResultAsync(CurFrame, CurIndex);
-                }
-                catch (Exception ex)
-                {
-                    NotifyUser(ex.Message);
-                }
-                finally
-                {
-                    // m_lock.Release();
-                }
+
+        async Task ExecuteFrame(VideoFrame CurFrame, int CurIndex)
+        {
+            try
+            {
+
+                await DetectObjectsAsync(CurFrame);
+                await DisplayFrameAndResultAsync(CurFrame, CurIndex);
+            }
+            catch (Exception ex)
+            {
+                NotifyUser(ex.Message);
+            }
+            finally
+            {
+                // m_lock.Release();
             }
         }
+
         /// <summary>
         /// Triggered when the expander is expanded and collapsed
         /// </summary>
@@ -289,9 +284,9 @@ namespace BMC.CCTVSecurity
             }*/
         }
         /// <summary>
-          /// </summary>
-          /// <param name="sender"></param>
-          /// <param name="e"></param>
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private async void UIObjectKindFilters_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             await m_lock.WaitAsync();
@@ -348,10 +343,10 @@ namespace BMC.CCTVSecurity
         /// <returns></returns>
         private async Task DisplayFrameAndResultAsync(VideoFrame frame, int CCTVIndex)
         {
-          
+
             await Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, async () =>
             {
-                
+
                 try
                 {
 
