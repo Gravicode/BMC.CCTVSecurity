@@ -72,6 +72,7 @@ namespace BMC.CCTVSecurity
         /// <param name="detections"></param>
         public void Render(IReadOnlyList<ObjectDetectorResult> detections)
         {
+            if (detections == null) return;
             int i = 0;
             m_rawRects.Clear();
             // Render detections up to MAX_BOXES
