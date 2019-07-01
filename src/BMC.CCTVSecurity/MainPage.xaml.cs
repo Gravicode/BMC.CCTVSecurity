@@ -26,6 +26,7 @@ using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Media.Imaging;
 using Windows.UI.Xaml.Navigation;
+using Windows.Media.SpeechSynthesis;
 
 // The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 
@@ -37,7 +38,7 @@ namespace BMC.CCTVSecurity
     public sealed partial class MainPage : Page
     {
         private IFrameSource m_frameSource = null;
-
+        private SpeechHelper speech;
         // Vision Skills
         private ObjectDetectorDescriptor m_descriptor = null;
         private ObjectDetectorBinding m_binding = null;
@@ -64,7 +65,22 @@ namespace BMC.CCTVSecurity
         {
             this.InitializeComponent();
         }
-
+        /// <summary>
+        /// Triggered when media element used to play synthesized speech messages is loaded.
+        /// Initializes SpeechHelper and greets user.
+        /// </summary>
+        private void speechMediaElement_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (speech == null)
+            {
+                speech = new SpeechHelper(speechMediaElement);
+            }
+            else
+            {
+                // Prevents media element from re-greeting visitor
+                speechMediaElement.AutoPlay = false;
+            }
+        }
         private async void Page_Loaded(object sender, RoutedEventArgs e)
         {
 
@@ -249,6 +265,7 @@ namespace BMC.CCTVSecurity
 
         async Task ExecuteFrame(VideoFrame CurFrame, int CurIndex)
         {
+            await m_lock.WaitAsync();
             try
             {
 
@@ -261,7 +278,7 @@ namespace BMC.CCTVSecurity
             }
             finally
             {
-                // m_lock.Release();
+                m_lock.Release();
             }
         }
 
@@ -366,9 +383,23 @@ namespace BMC.CCTVSecurity
                     {
                         objectDetections = objectDetections.Where(det => m_objectKinds.Contains(det.Kind)).ToList();
                     }
-
-                    // Update displayed results
-                    m_bboxRenderer[CCTVIndex].Render(objectDetections);
+                    if (objectDetections != null)
+                    {
+                        // Update displayed results
+                        m_bboxRenderer[CCTVIndex].Render(objectDetections);
+                        bool PersonDetected = false;
+                        int PersonCount = 0;
+                        foreach(var obj in objectDetections)
+                        {
+                            if (obj.Kind.ToString().ToLower() == "person")
+                            {
+                                PersonCount++;
+                                PersonDetected = true;
+                            }
+                        }
+                        if(PersonDetected)
+                            await speech.Read($"I saw {PersonCount} person in {DataConfig.RoomName[CCTVIndex]}");
+                    }
 
                     // Update the displayed performance text
                     StatusLbl.Text = $"bind: {m_bindTime.ToString("F2")}ms, eval: {m_evalTime.ToString("F2")}ms";

@@ -8,6 +8,7 @@ namespace BMC.CCTVSecurity.Helpers
 {
     public static class DataConfig
     {
+        public static string[] RoomName = { "backyard","parking area","living room","top floor" };
         public const string MqttHost = "13.76.156.239";
         public const string MqttUser = "loradev_mqtt";
         public const string MqttPass = "test123";

@@ -58,6 +58,8 @@
                         <TextBlock Text="Available execution devices:" FontWeight="Bold"/>
                         <ListBox Name="UISkillExecutionDevices" SelectionChanged="UISkillExecutionDevices_SelectionChanged"/>
                         <ListView Name="UIObjectKindFilters" SelectionMode="Multiple" ScrollViewer.VerticalScrollBarVisibility="Visible" SelectionChanged="UIObjectKindFilters_SelectionChanged" />
+                        <MediaElement x:Name="speechMediaElement" HorizontalAlignment="Left" VerticalAlignment="Top" Loaded="speechMediaElement_Loaded"/>
+
                     </StackPanel>
                 </controls:Expander>
 
