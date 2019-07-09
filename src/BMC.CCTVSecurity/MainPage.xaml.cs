@@ -44,20 +44,20 @@ namespace BMC.CCTVSecurity
         private ObjectDetectorBinding m_binding = null;
         private ObjectDetectorSkill m_skill = null;
         private IReadOnlyList<ISkillExecutionDevice> m_availableExecutionDevices = null;
-
+        bool IsPlaying = false;
         // Misc
         private BoundingBoxRenderer[] m_bboxRenderer = new BoundingBoxRenderer[DataConfig.CCTVCount];
         private HashSet<ObjectKind> m_objectKinds = null;
 
         // Frames
         private SoftwareBitmapSource[] m_processedBitmapSource = new SoftwareBitmapSource[DataConfig.CCTVCount];
-
+        private Random Rnd = new Random();
         // Performance metrics
         private Stopwatch m_evalStopwatch = new Stopwatch();
         private float m_bindTime = 0;
         private float m_evalTime = 0;
         private Stopwatch m_renderStopwatch = new Stopwatch();
-
+        private static List<string> Sounds = new List<string>();
         // Locks
         private SemaphoreSlim m_lock = new SemaphoreSlim(1);
         HttpClient client = new HttpClient();
@@ -65,6 +65,33 @@ namespace BMC.CCTVSecurity
         {
             this.InitializeComponent();
         }
+
+        async void PlaySound(string SoundFile)
+        {
+            if (IsPlaying) return;
+            await Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, async () =>
+            {
+               
+               
+                    IsPlaying = true;
+                    MediaElement mysong = speechMediaElement;// new MediaElement();
+                    Windows.Storage.StorageFolder folder = await Windows.ApplicationModel.Package.Current.InstalledLocation.GetFolderAsync("Assets");
+                    Windows.Storage.StorageFile file = await folder.GetFileAsync(SoundFile);
+                    var stream = await file.OpenAsync(Windows.Storage.FileAccessMode.Read);
+                    mysong.SetSource(stream, file.ContentType);
+                    mysong.Play();
+            
+                    //UI code here
+               
+            });
+        }
+
+        private void Mysong_MediaEnded(object sender, RoutedEventArgs e)
+        {
+           
+            IsPlaying = false;
+        }
+
         /// <summary>
         /// Triggered when media element used to play synthesized speech messages is loaded.
         /// Initializes SpeechHelper and greets user.
@@ -74,6 +101,7 @@ namespace BMC.CCTVSecurity
             if (speech == null)
             {
                 speech = new SpeechHelper(speechMediaElement);
+                speechMediaElement.MediaEnded += Mysong_MediaEnded;
             }
             else
             {
@@ -83,7 +111,17 @@ namespace BMC.CCTVSecurity
         }
         private async void Page_Loaded(object sender, RoutedEventArgs e)
         {
+            if (Sounds.Count <= 0)
+            {
+                Sounds.Add("wengi.mp3");
+                Sounds.Add("setan.wav");
+                Sounds.Add("setan2.wav");
+                Sounds.Add("zombie.wav");
+                Sounds.Add("zombie2.wav");
+                Sounds.Add("scream.mp3");
+                Sounds.Add("monster.mp3");
 
+            }
 
             m_processedBitmapSource[0] = new SoftwareBitmapSource();
             CCTV1.Source = m_processedBitmapSource[0];
@@ -397,8 +435,13 @@ namespace BMC.CCTVSecurity
                                 PersonDetected = true;
                             }
                         }
-                        if(PersonDetected)
-                            await speech.Read($"I saw {PersonCount} person in {DataConfig.RoomName[CCTVIndex]}");
+                        if (PersonDetected)
+                        {
+                            if ((bool)ChkMode.IsChecked)
+                                 PlaySound(Sounds[ Rnd.Next(0,Sounds.Count-1)]);
+                            else
+                                await speech.Read($"I saw {PersonCount} person in {DataConfig.RoomName[CCTVIndex]}");
+                        }
                     }
 
                     // Update the displayed performance text
