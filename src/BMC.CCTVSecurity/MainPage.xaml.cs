@@ -58,6 +58,7 @@ namespace BMC.CCTVSecurity
         private float m_evalTime = 0;
         private Stopwatch m_renderStopwatch = new Stopwatch();
         private static List<string> Sounds = new List<string>();
+        private static DateTime[] LastSaved = new DateTime[4];
         // Locks
         private SemaphoreSlim m_lock = new SemaphoreSlim(1);
         HttpClient client = new HttpClient();
@@ -111,6 +112,10 @@ namespace BMC.CCTVSecurity
         }
         private async void Page_Loaded(object sender, RoutedEventArgs e)
         {
+            for(int i = 0; i < 4; i++)
+            {
+                LastSaved[i] = DateTime.MinValue;
+            }
             if (Sounds.Count <= 0)
             {
                 Sounds.Add("wengi.mp3");
@@ -404,15 +409,17 @@ namespace BMC.CCTVSecurity
 
                 try
                 {
-
+                    SoftwareBitmap savedBmp = null;
                     if (frame.SoftwareBitmap != null)
                     {
                         await m_processedBitmapSource[CCTVIndex].SetBitmapAsync(frame.SoftwareBitmap);
+                        savedBmp = frame.SoftwareBitmap;
                     }
                     else
                     {
                         var bitmap = await SoftwareBitmap.CreateCopyFromSurfaceAsync(frame.Direct3DSurface, BitmapAlphaMode.Ignore);
                         await m_processedBitmapSource[CCTVIndex].SetBitmapAsync(bitmap);
+                        savedBmp = bitmap;
                     }
 
                     // Retrieve and filter results if requested
@@ -441,6 +448,29 @@ namespace BMC.CCTVSecurity
                                  PlaySound(Sounds[ Rnd.Next(0,Sounds.Count-1)]);
                             else
                                 await speech.Read($"I saw {PersonCount} person in {DataConfig.RoomName[CCTVIndex]}");
+
+                            //save to picture libs
+                            /*
+                            String path = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
+                            path += "\\CCTV";
+                            if (!Directory.Exists(path))
+                            {
+                                Directory.CreateDirectory(path);
+                            }*/
+                            var TS = DateTime.Now - LastSaved[CCTVIndex];
+                            if(savedBmp!=null && TS.TotalSeconds>DataConfig.CaptureIntervalSecs && (bool)ChkMode.IsChecked)
+                            {
+                                var myPictures = await Windows.Storage.StorageLibrary.GetLibraryAsync(Windows.Storage.KnownLibraryId.Pictures);
+                                Windows.Storage.StorageFolder storageFolder = myPictures.SaveFolder;
+                                   
+                                // Create sample file; replace if exists.
+                                //Windows.Storage.StorageFolder storageFolder = await Windows.Storage.StorageFolder.GetFolderFromPathAsync(path);
+                                Windows.Storage.StorageFile sampleFile =
+                                    await storageFolder.CreateFileAsync($"cctv_{DateTime.Now.ToString("dd_MM_yyyy_HH_mm_ss")}_{CCTVIndex}.jpg",
+                                        Windows.Storage.CreationCollisionOption.ReplaceExisting);
+                                ImageHelpers.SaveSoftwareBitmapToFile(savedBmp, sampleFile);
+                                LastSaved[CCTVIndex] = DateTime.Now;
+                            }
                         }
                     }
 

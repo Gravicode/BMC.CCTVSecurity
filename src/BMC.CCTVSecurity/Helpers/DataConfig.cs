@@ -15,6 +15,7 @@ namespace BMC.CCTVSecurity.Helpers
         public const int EvalInterval = 3000;
         public const int CCTVCount = 4;
         const string CCTV_IP = "192.168.1.10";
+        public const int CaptureIntervalSecs = 30;
         //,  
         public static string[] CCTVURL = new string[] { $"http://{CCTV_IP}/cgi-bin/snapshot.cgi?chn=0&u=admin&p=&q=0&d=1&rand=",
         $"http://{CCTV_IP}/cgi-bin/snapshot.cgi?chn=1&u=admin&p=&q=0&d=1&rand=",

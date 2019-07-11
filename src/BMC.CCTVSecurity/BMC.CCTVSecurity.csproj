@@ -125,6 +125,7 @@
     <Compile Include="FrameSource\ImageFileFrameSource.cs" />
     <Compile Include="FrameSource\MediaPlayerFrameSource.cs" />
     <Compile Include="Helpers\DataConfig.cs" />
+    <Compile Include="Helpers\ImageHelpers.cs" />
     <Compile Include="Helpers\SpeechHelper.cs" />
     <Compile Include="MainPage.xaml.cs">
       <DependentUpon>MainPage.xaml</DependentUpon>
