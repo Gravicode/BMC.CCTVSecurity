@@ -20,10 +20,12 @@ namespace BMC.CCTVSecurity
 
         // Cache the original Rects we get for resizing purposes
         private List<Rect> m_rawRects;
+        private List<Line> m_rawLines;
 
         // Pre-populate rectangles/textblocks to avoid clearing and re-creating on each frame
         private Rectangle[] m_rectangles;
         private TextBlock[] m_textBlocks;
+        private Line[] m_lines;
 
         /// <summary>
         /// </summary>
@@ -34,13 +36,17 @@ namespace BMC.CCTVSecurity
         public BoundingBoxRenderer(Canvas canvas, int maxBoxes = 50, int lineThickness = 2, SolidColorBrush colorBrush = null)
         {
             m_rawRects = new List<Rect>();
+
             m_rectangles = new Rectangle[maxBoxes];
             m_textBlocks = new TextBlock[maxBoxes];
+            m_rawLines = new List<Line>();
+
+            m_lines = new  Line[maxBoxes];
             if (colorBrush == null)
             {
                 colorBrush = new SolidColorBrush(Colors.SpringGreen);
             }
-
+            var lineBrush = new SolidColorBrush(Colors.DarkRed);
             m_canvas = canvas;
             for (int i = 0; i < maxBoxes; i++)
             {
@@ -63,6 +69,16 @@ namespace BMC.CCTVSecurity
                 m_textBlocks[i].Visibility = Visibility.Collapsed;
                 // Add to canvas
                 m_canvas.Children.Add(m_textBlocks[i]);
+
+                // Create lines
+                m_lines[i] = new  Line();
+                // Default configuration
+                m_lines[i].StrokeThickness = 2;
+                m_lines[i].Stroke = lineBrush;
+                // Hide
+                m_lines[i].Visibility = Visibility.Collapsed;
+                // Add to canvas
+                m_canvas.Children.Add(m_lines[i]);
             }
         }
 
@@ -124,6 +140,74 @@ namespace BMC.CCTVSecurity
                 // Update text label
                 Canvas.SetLeft(m_textBlocks[i], m_rawRects[i].X * m_canvas.Width + 2);
                 Canvas.SetTop(m_textBlocks[i], m_rawRects[i].Y * m_canvas.Height + 2);
+
+             
+            }
+            // Resize rendered bboxes
+            for (int i = 0; i < m_lines.Length && m_lines[i].Visibility == Visibility.Visible; i++)
+            {
+              
+
+                //update lines
+                //m_lines[i].Width = m_rawLines[i].Width * m_canvas.ActualWidth;
+                //m_lines[i].Height = m_rawLines[i].Height * m_canvas.ActualHeight;
+                m_lines[i].X1 = m_rawLines[i].X1 * m_canvas.ActualWidth;
+                m_lines[i].X2 = m_rawLines[i].X2 * m_canvas.ActualWidth;
+                m_lines[i].Y1 = m_rawLines[i].Y1 * m_canvas.ActualHeight;
+                m_lines[i].Y2 = m_rawLines[i].Y2 * m_canvas.ActualHeight;
+            }
+        }
+
+
+        public void ClearLineDistance()
+        {
+            int i = 0;
+            for (; i < m_lines.Length; i++)
+            {
+                // Early exit: Everything after i will already be collapsed
+                if (m_lines[i].Visibility == Visibility.Collapsed)
+                {
+                    break;
+                }
+                m_lines[i].Visibility = Visibility.Collapsed;
+
+            }
+        }
+        public void DistanceLineRender(List<Line> detections)
+        {
+            if (detections == null) return;
+            int i = 0;
+            m_rawLines.Clear();
+            // Render detections up to MAX_BOXES
+            for (i = 0; i < detections.Count && i < m_lines.Length; i++)
+            {
+                // Cache rect
+                m_rawLines.Add(detections[i]);
+
+                // Render line
+                //m_lines[i].Width = detections[i].Width * m_canvas.ActualWidth;
+                //m_lines[i].Height = detections[i].Height * m_canvas.ActualHeight;
+                m_lines[i].X1 = detections[i].X1 * m_canvas.ActualWidth;
+                m_lines[i].X2 = detections[i].X2 * m_canvas.ActualWidth;
+                m_lines[i].Y1 = detections[i].Y1 * m_canvas.ActualHeight;
+                m_lines[i].Y2 = detections[i].Y2 * m_canvas.ActualHeight;
+
+                //Canvas.SetLeft(m_lines[i], detections[i].X * m_canvas.ActualWidth);
+                //Canvas.SetTop(m_lines[i], detections[i].Y * m_canvas.ActualHeight);
+                m_lines[i].Visibility = Visibility.Visible;
+
+               
+            }
+            // Hide all remaining boxes
+            for (; i < m_lines.Length; i++)
+            {
+                // Early exit: Everything after i will already be collapsed
+                if (m_lines[i].Visibility == Visibility.Collapsed)
+                {
+                    break;
+                }
+                m_lines[i].Visibility = Visibility.Collapsed;
+               
             }
         }
     }

@@ -434,21 +434,42 @@ namespace BMC.CCTVSecurity
                         m_bboxRenderer[CCTVIndex].Render(objectDetections);
                         bool PersonDetected = false;
                         int PersonCount = 0;
+                        var rects = new List<Rect>();
                         foreach(var obj in objectDetections)
                         {
                             if (obj.Kind.ToString().ToLower() == "person")
                             {
                                 PersonCount++;
                                 PersonDetected = true;
+                                rects.Add(obj.Rect);
                             }
                         }
                         if (PersonDetected)
                         {
                             if ((bool)ChkMode.IsChecked)
-                                 PlaySound(Sounds[ Rnd.Next(0,Sounds.Count-1)]);
+                                PlaySound(Sounds[Rnd.Next(0, Sounds.Count - 1)]);
                             else
                                 await speech.Read($"I saw {PersonCount} person in {DataConfig.RoomName[CCTVIndex]}");
-
+                            if ((bool)ChkSocialDistancing.IsChecked)
+                            {
+                                //make sure there is more than 1 person
+                                if (rects.Count > 1)
+                                {
+                                    var res = SocialDistanceHelpers.Detect(rects.ToArray());
+                                    if (res.Result)
+                                    {
+                                        m_bboxRenderer[CCTVIndex].DistanceLineRender(res.Lines);
+                                    }
+                                }
+                                else
+                                {
+                                    m_bboxRenderer[CCTVIndex].ClearLineDistance();
+                                }
+                            }
+                            else
+                            {
+                                m_bboxRenderer[CCTVIndex].ClearLineDistance();
+                            }
                             //save to picture libs
                             /*
                             String path = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
