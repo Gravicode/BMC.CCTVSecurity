@@ -119,6 +119,7 @@
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Helpers\MaskDetection.cs" />
     <Compile Include="BoundingBoxRenderer.cs" />
     <Compile Include="FrameSource\FrameReaderFrameSource.cs" />
     <Compile Include="FrameSource\IFrameSource.cs" />
@@ -138,6 +139,9 @@
     <AppxManifest Include="Package.appxmanifest">
       <SubType>Designer</SubType>
     </AppxManifest>
+    <Content Include="Assets\facemask.onnx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <None Include="BMC.CCTVSecurity_TemporaryKey.pfx" />
   </ItemGroup>
   <ItemGroup>

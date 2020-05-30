@@ -27,6 +27,7 @@ using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Media.Imaging;
 using Windows.UI.Xaml.Navigation;
 using Windows.Media.SpeechSynthesis;
+using Windows.Storage;
 
 // The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 
@@ -37,6 +38,7 @@ namespace BMC.CCTVSecurity
     /// </summary>
     public sealed partial class MainPage : Page
     {
+        Helpers.CustomVision.MaskDetection MaskDetect { set; get; }
         private IFrameSource m_frameSource = null;
         private SpeechHelper speech;
         // Vision Skills
@@ -112,7 +114,20 @@ namespace BMC.CCTVSecurity
         }
         private async void Page_Loaded(object sender, RoutedEventArgs e)
         {
-            for(int i = 0; i < 4; i++)
+            try
+            {
+                MaskDetect = new Helpers.CustomVision.MaskDetection(new string[] { "mask","no-mask"});
+                // Load and create the model 
+                var modelFile = await StorageFile.GetFileFromApplicationUriAsync(new Uri($"ms-appx:///Assets/facemask.onnx"));
+                await MaskDetect.Init(modelFile);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"error: {ex.Message}");
+                MaskDetect = null;
+
+            }
+            for (int i = 0; i < 4; i++)
             {
                 LastSaved[i] = DateTime.MinValue;
             }
@@ -446,10 +461,7 @@ namespace BMC.CCTVSecurity
                         }
                         if (PersonDetected)
                         {
-                            if ((bool)ChkMode.IsChecked)
-                                PlaySound(Sounds[Rnd.Next(0, Sounds.Count - 1)]);
-                            else
-                                await speech.Read($"I saw {PersonCount} person in {DataConfig.RoomName[CCTVIndex]}");
+                            bool KeepDistance = false;
                             if ((bool)ChkSocialDistancing.IsChecked)
                             {
                                 //make sure there is more than 1 person
@@ -458,7 +470,9 @@ namespace BMC.CCTVSecurity
                                     var res = SocialDistanceHelpers.Detect(rects.ToArray());
                                     if (res.Result)
                                     {
+                                        KeepDistance = true;
                                         m_bboxRenderer[CCTVIndex].DistanceLineRender(res.Lines);
+                                        await speech.Read($"Please keep distance in {DataConfig.RoomName[CCTVIndex]}");
                                     }
                                 }
                                 else
@@ -470,14 +484,36 @@ namespace BMC.CCTVSecurity
                             {
                                 m_bboxRenderer[CCTVIndex].ClearLineDistance();
                             }
-                            //save to picture libs
-                            /*
-                            String path = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
-                            path += "\\CCTV";
-                            if (!Directory.Exists(path))
+
+                            if ((bool)ChkMode.IsChecked)
+                                PlaySound(Sounds[Rnd.Next(0, Sounds.Count - 1)]);
+                            else if(!KeepDistance)
+                                await speech.Read($"I saw {PersonCount} person in {DataConfig.RoomName[CCTVIndex]}");
+
+                            if ((bool)ChkDetectMask.IsChecked)
                             {
-                                Directory.CreateDirectory(path);
-                            }*/
+                                var maskdetect = await MaskDetect.PredictImageAsync(frame);
+                                var noMaskCount = maskdetect.Where(x => x.TagName == "no-mask").Count();
+                                if (noMaskCount > 0)
+                                {
+                                    if(!KeepDistance)
+                                    await speech.Read($"please wear a face mask in {DataConfig.RoomName[CCTVIndex]}");
+                                }
+                                if (maskdetect.Count <= 0)
+                                {
+                                    m_bboxRenderer[CCTVIndex].ClearMaskLabel();
+                                }
+                            }
+                            else
+                                m_bboxRenderer[CCTVIndex].ClearMaskLabel();
+                            //save to picture libs
+                                /*
+                                String path = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
+                                path += "\\CCTV";
+                                if (!Directory.Exists(path))
+                                {
+                                    Directory.CreateDirectory(path);
+                                }*/
                             var TS = DateTime.Now - LastSaved[CCTVIndex];
                             if(savedBmp!=null && TS.TotalSeconds>DataConfig.CaptureIntervalSecs && (bool)ChkMode.IsChecked)
                             {

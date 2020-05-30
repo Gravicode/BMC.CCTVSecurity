@@ -1,5 +1,6 @@
 ﻿// Copyright (C) Microsoft Corporation. All rights reserved.
 
+using BMC.CCTVSecurity.Helpers.CustomVision;
 using Microsoft.AI.Skills.Vision.ObjectDetectorPreview;
 using System.Collections.Generic;
 using Windows.Foundation;
@@ -21,12 +22,13 @@ namespace BMC.CCTVSecurity
         // Cache the original Rects we get for resizing purposes
         private List<Rect> m_rawRects;
         private List<Line> m_rawLines;
-
+        private List<BoundingBox> m_rawMaskRects;
         // Pre-populate rectangles/textblocks to avoid clearing and re-creating on each frame
         private Rectangle[] m_rectangles;
         private TextBlock[] m_textBlocks;
         private Line[] m_lines;
 
+        private TextBlock[] m_masktextBlocks;
         /// <summary>
         /// </summary>
         /// <param name="canvas"></param>
@@ -42,6 +44,11 @@ namespace BMC.CCTVSecurity
             m_rawLines = new List<Line>();
 
             m_lines = new  Line[maxBoxes];
+
+            //masks
+            m_rawMaskRects = new List<BoundingBox>();
+
+            m_masktextBlocks = new TextBlock[maxBoxes];
             if (colorBrush == null)
             {
                 colorBrush = new SolidColorBrush(Colors.SpringGreen);
@@ -79,6 +86,17 @@ namespace BMC.CCTVSecurity
                 m_lines[i].Visibility = Visibility.Collapsed;
                 // Add to canvas
                 m_canvas.Children.Add(m_lines[i]);
+
+                //create masks label
+                // Create textblocks
+                m_masktextBlocks[i] = new TextBlock();
+                // Default configuration
+                m_masktextBlocks[i].Foreground = colorBrush;
+                m_masktextBlocks[i].FontSize = 18;
+                // Hide
+                m_masktextBlocks[i].Visibility = Visibility.Collapsed;
+                // Add to canvas
+                m_canvas.Children.Add(m_masktextBlocks[i]);
             }
         }
 
@@ -156,6 +174,13 @@ namespace BMC.CCTVSecurity
                 m_lines[i].Y1 = m_rawLines[i].Y1 * m_canvas.ActualHeight;
                 m_lines[i].Y2 = m_rawLines[i].Y2 * m_canvas.ActualHeight;
             }
+            // Resize mask label
+            for (int i = 0; i < m_masktextBlocks.Length && m_masktextBlocks[i].Visibility == Visibility.Visible; i++)
+            {
+                // Update text label
+                Canvas.SetLeft(m_masktextBlocks[i], m_rawMaskRects[i].Left * m_canvas.Width + 2);
+                Canvas.SetTop(m_masktextBlocks[i], m_rawMaskRects[i].Top * m_canvas.Height + 2);
+            }
         }
 
 
@@ -208,6 +233,61 @@ namespace BMC.CCTVSecurity
                 }
                 m_lines[i].Visibility = Visibility.Collapsed;
                
+            }
+        }
+
+        /// <summary>
+        /// Render bounding boxes from ObjectDetections
+        /// </summary>
+        /// <param name="detections"></param>
+        public void RenderMaskLabel(IList<Helpers.CustomVision.PredictionModel> detections)
+        {
+            if (detections == null) return;
+            int i = 0;
+            m_rawMaskRects.Clear();
+            // Render detections up to MAX_BOXES
+            for (i = 0; i < detections.Count && i < m_masktextBlocks.Length; i++)
+            {
+                // Cache rect
+                m_rawMaskRects.Add(detections[i].BoundingBox);
+
+                // Render bounding box
+                //m_rectangles[i].Width = detections[i].Rect.Width * m_canvas.ActualWidth;
+                //m_rectangles[i].Height = detections[i].Rect.Height * m_canvas.ActualHeight;
+                //Canvas.SetLeft(m_rectangles[i], detections[i].Rect.X * m_canvas.ActualWidth);
+                //Canvas.SetTop(m_rectangles[i], detections[i].Rect.Y * m_canvas.ActualHeight);
+                //m_rectangles[i].Visibility = Visibility.Visible;
+
+                // Render text label
+                m_masktextBlocks[i].Text = detections[i].TagName;
+                Canvas.SetLeft(m_masktextBlocks[i], detections[i].BoundingBox.Left * m_canvas.ActualWidth + 2);
+                Canvas.SetTop(m_masktextBlocks[i], detections[i].BoundingBox.Top * m_canvas.ActualHeight + 2);
+                m_masktextBlocks[i].Visibility = Visibility.Visible;
+            }
+            // Hide all remaining boxes
+            for (; i < m_masktextBlocks.Length; i++)
+            {
+                // Early exit: Everything after i will already be collapsed
+                if (m_masktextBlocks[i].Visibility == Visibility.Collapsed)
+                {
+                    break;
+                }
+                //m_rectangles[i].Visibility = Visibility.Collapsed;
+                m_masktextBlocks[i].Visibility = Visibility.Collapsed;
+            }
+        }
+        public void ClearMaskLabel()
+        {
+            int i = 0;
+            for (; i < m_masktextBlocks.Length; i++)
+            {
+                // Early exit: Everything after i will already be collapsed
+                if (m_masktextBlocks[i].Visibility == Visibility.Collapsed)
+                {
+                    break;
+                }
+                m_masktextBlocks[i].Visibility = Visibility.Collapsed;
+
             }
         }
     }
