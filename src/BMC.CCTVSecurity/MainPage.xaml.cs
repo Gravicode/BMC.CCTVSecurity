@@ -28,6 +28,7 @@ using Windows.UI.Xaml.Media.Imaging;
 using Windows.UI.Xaml.Navigation;
 using Windows.Media.SpeechSynthesis;
 using Windows.Storage;
+using Windows.Media.FaceAnalysis;
 
 // The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 
@@ -38,6 +39,7 @@ namespace BMC.CCTVSecurity
     /// </summary>
     public sealed partial class MainPage : Page
     {
+        private FaceDetector m_faceDetector = null;
         Helpers.CustomVision.MaskDetection MaskDetect { set; get; }
         private IFrameSource m_frameSource = null;
         private SpeechHelper speech;
@@ -116,6 +118,7 @@ namespace BMC.CCTVSecurity
         {
             try
             {
+                m_faceDetector = await FaceDetector.CreateAsync();
                 MaskDetect = new Helpers.CustomVision.MaskDetection(new string[] { "mask","no-mask"});
                 // Load and create the model 
                 var modelFile = await StorageFile.GetFileFromApplicationUriAsync(new Uri($"ms-appx:///Assets/facemask.onnx"));
@@ -467,13 +470,14 @@ namespace BMC.CCTVSecurity
                                 //make sure there is more than 1 person
                                 if (rects.Count > 1)
                                 {
-                                    var res = SocialDistanceHelpers.Detect(rects.ToArray());
-                                    if (res.Result)
-                                    {
-                                        KeepDistance = true;
-                                        m_bboxRenderer[CCTVIndex].DistanceLineRender(res.Lines);
-                                        await speech.Read($"Please keep distance in {DataConfig.RoomName[CCTVIndex]}");
-                                    }
+                                        var res = SocialDistanceHelpers.Detect(rects.ToArray());
+                                        if (res.Result)
+                                        {
+                                            KeepDistance = true;
+                                            m_bboxRenderer[CCTVIndex].DistanceLineRender(res.Lines);
+                                            await speech.Read($"Please keep distance in {DataConfig.RoomName[CCTVIndex]}");
+                                        }
+                                    
                                 }
                                 else
                                 {
@@ -490,21 +494,54 @@ namespace BMC.CCTVSecurity
                             else if(!KeepDistance)
                                 await speech.Read($"I saw {PersonCount} person in {DataConfig.RoomName[CCTVIndex]}");
 
+                            bool IsFaceDetected = false;
                             if ((bool)ChkDetectMask.IsChecked)
                             {
-                                var maskdetect = await MaskDetect.PredictImageAsync(frame);
-                                var noMaskCount = maskdetect.Where(x => x.TagName == "no-mask").Count();
-                                if (noMaskCount > 0)
+                                SoftwareBitmap softwareBitmapInput = frame.SoftwareBitmap;
+                                // Retrieve a SoftwareBitmap to run face detection
+                                if (softwareBitmapInput == null)
                                 {
-                                    if(!KeepDistance)
-                                    await speech.Read($"please wear a face mask in {DataConfig.RoomName[CCTVIndex]}");
+                                    if (frame.Direct3DSurface == null)
+                                    {
+                                        throw (new ArgumentNullException("An invalid input frame has been bound"));
+                                    }
+                                    softwareBitmapInput = await SoftwareBitmap.CreateCopyFromSurfaceAsync(frame.Direct3DSurface);
                                 }
-                                if (maskdetect.Count <= 0)
+                                // We need to convert the image into a format that's compatible with FaceDetector.
+                                // Gray8 should be a good type but verify it against FaceDetector’s supported formats.
+                                const BitmapPixelFormat InputPixelFormat = BitmapPixelFormat.Gray8;
+                                if (FaceDetector.IsBitmapPixelFormatSupported(InputPixelFormat))
                                 {
-                                    m_bboxRenderer[CCTVIndex].ClearMaskLabel();
+                                    using (var detectorInput = SoftwareBitmap.Convert(softwareBitmapInput, InputPixelFormat))
+                                    {
+                                        // Run face detection and retrieve face detection result
+                                        var faceDetectionResult = await m_faceDetector.DetectFacesAsync(detectorInput);
+
+                                        // If a face is found, update face rectangle feature
+                                        if (faceDetectionResult.Count > 0)
+                                        {
+                                            IsFaceDetected = true;
+                                            // Retrieve the face bound and enlarge it by a factor of 1.5x while also ensuring clamping to frame dimensions
+                                            BitmapBounds faceBound = faceDetectionResult[0].FaceBox;
+                                            var additionalOffset = faceBound.Width / 2;
+                                            faceBound.X = Math.Max(0, faceBound.X - additionalOffset);
+                                            faceBound.Y = Math.Max(0, faceBound.Y - additionalOffset);
+                                            faceBound.Width = (uint)Math.Min(faceBound.Width + 2 * additionalOffset, softwareBitmapInput.PixelWidth - faceBound.X);
+                                            faceBound.Height = (uint)Math.Min(faceBound.Height + 2 * additionalOffset, softwareBitmapInput.PixelHeight - faceBound.Y);
+
+                                            var maskdetect = await MaskDetect.PredictImageAsync(frame);
+                                            var noMaskCount = maskdetect.Where(x => x.TagName == "no-mask").Count();
+                                            if (noMaskCount > 0)
+                                            {
+                                                if (!KeepDistance)
+                                                    await speech.Read($"please wear a face mask in {DataConfig.RoomName[CCTVIndex]}");
+                                            }
+
+                                        }
+                                    }
                                 }
                             }
-                            else
+                            if(!IsFaceDetected)
                                 m_bboxRenderer[CCTVIndex].ClearMaskLabel();
                             //save to picture libs
                                 /*
