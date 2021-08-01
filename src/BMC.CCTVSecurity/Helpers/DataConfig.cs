@@ -9,9 +9,15 @@ namespace BMC.CCTVSecurity.Helpers
     public static class DataConfig
     {
         public static string[] RoomName = { "backyard","parking area","living room","top floor" };
-        public const string MqttHost = "13.76.156.239";
+        public const string MqttHost = "broker.emqx.io";//"13.76.156.239";
         public const string MqttUser = "loradev_mqtt";
         public const string MqttPass = "test123";
+        public const string MailTo = "mifmasterz@gmail.com";
+        public const string MailFrom = "mifmasterz@outlook.com";
+        public const string SmsTo = "+628174810345";
+    
+        public const string UrlMail = "https://bmcsecurityweb.azurewebsites.net/svc/sendmail.ashx";
+        public const string UrlSms = "https://bmcsecurityweb.azurewebsites.net/svc/sms.ashx";
         public const int EvalInterval = 3000;
         public const int CCTVCount = 4;
         const string CCTV_IP = "192.168.1.10";

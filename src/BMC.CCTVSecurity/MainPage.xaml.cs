@@ -488,12 +488,18 @@ namespace BMC.CCTVSecurity
                             {
                                 m_bboxRenderer[CCTVIndex].ClearLineDistance();
                             }
-
+                            var msg = $"I saw {PersonCount} person in {DataConfig.RoomName[CCTVIndex]}";
                             if ((bool)ChkMode.IsChecked)
                                 PlaySound(Sounds[Rnd.Next(0, Sounds.Count - 1)]);
-                            else if(!KeepDistance)
-                                await speech.Read($"I saw {PersonCount} person in {DataConfig.RoomName[CCTVIndex]}");
-
+                            else if (!KeepDistance)
+                            {
+                                await speech.Read(msg);
+                            }
+                            if ((bool)ChkPatrol.IsChecked)
+                            {
+                                await NotificationService.SendMail("Person Detected in BMSpace", msg, DataConfig.MailTo, DataConfig.MailFrom);
+                                await NotificationService.SendSms(DataConfig.SmsTo, msg);
+                            }
                             bool IsFaceDetected = false;
                             if ((bool)ChkDetectMask.IsChecked)
                             {

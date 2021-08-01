@@ -128,6 +128,7 @@
     <Compile Include="Helpers\DataConfig.cs" />
     <Compile Include="Helpers\DistanceHelpers.cs" />
     <Compile Include="Helpers\ImageHelpers.cs" />
+    <Compile Include="Helpers\NotificationService.cs" />
     <Compile Include="Helpers\SocialDistanceHelpers.cs" />
     <Compile Include="Helpers\SpeechHelper.cs" />
     <Compile Include="MainPage.xaml.cs">
