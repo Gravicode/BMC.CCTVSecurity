@@ -558,11 +558,16 @@ namespace BMC.CCTVSecurity
                                     Directory.CreateDirectory(path);
                                 }*/
                             var TS = DateTime.Now - LastSaved[CCTVIndex];
-                            if(savedBmp!=null && TS.TotalSeconds>DataConfig.CaptureIntervalSecs && (bool)ChkMode.IsChecked)
+                            if(savedBmp!=null && TS.TotalSeconds>DataConfig.CaptureIntervalSecs && (bool)ChkCapture.IsChecked)
                             {
                                 var myPictures = await Windows.Storage.StorageLibrary.GetLibraryAsync(Windows.Storage.KnownLibraryId.Pictures);
-                                Windows.Storage.StorageFolder storageFolder = myPictures.SaveFolder;
-                                   
+                                Windows.Storage.StorageFolder rootFolder = myPictures.SaveFolder;
+                                Windows.Storage.StorageFolder storageFolder = rootFolder;
+                                var folderName = "cctv";
+                                if (Directory.Exists($"{rootFolder.Path}\\{folderName}"))
+                                    storageFolder = await rootFolder.GetFolderAsync(folderName);
+                                else
+                                    storageFolder = await rootFolder.CreateFolderAsync(folderName);
                                 // Create sample file; replace if exists.
                                 //Windows.Storage.StorageFolder storageFolder = await Windows.Storage.StorageFolder.GetFolderFromPathAsync(path);
                                 Windows.Storage.StorageFile sampleFile =
