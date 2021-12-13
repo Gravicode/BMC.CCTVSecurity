@@ -564,10 +564,17 @@ namespace BMC.CCTVSecurity
                                 Windows.Storage.StorageFolder rootFolder = myPictures.SaveFolder;
                                 Windows.Storage.StorageFolder storageFolder = rootFolder;
                                 var folderName = "cctv";
-                                if (Directory.Exists($"{rootFolder.Path}\\{folderName}"))
+                                try
+                                {
                                     storageFolder = await rootFolder.GetFolderAsync(folderName);
-                                else
+                                }
+                                catch
+                                {
                                     storageFolder = await rootFolder.CreateFolderAsync(folderName);
+
+                                }
+                                //if (Directory.Exists($"{rootFolder.Path}\\{folderName}"))
+                                //else
                                 // Create sample file; replace if exists.
                                 //Windows.Storage.StorageFolder storageFolder = await Windows.Storage.StorageFolder.GetFolderFromPathAsync(path);
                                 Windows.Storage.StorageFile sampleFile =
