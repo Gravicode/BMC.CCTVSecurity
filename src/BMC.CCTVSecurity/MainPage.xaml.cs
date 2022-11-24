@@ -2,33 +2,27 @@
 using FrameSourceHelper_UWP;
 using Microsoft.AI.Skills.SkillInterfacePreview;
 using Microsoft.AI.Skills.Vision.ObjectDetectorPreview;
-using Microsoft.Toolkit.Uwp.UI.Controls;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading;
 using System.Threading.Tasks;
 using Windows.Foundation;
-using Windows.Foundation.Collections;
 using Windows.Graphics.Imaging;
 using Windows.Media;
 using Windows.Media.MediaProperties;
 using Windows.Storage.Streams;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
-using Windows.UI.Xaml.Controls.Primitives;
-using Windows.UI.Xaml.Data;
-using Windows.UI.Xaml.Input;
-using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Media.Imaging;
-using Windows.UI.Xaml.Navigation;
-using Windows.Media.SpeechSynthesis;
 using Windows.Storage;
 using Windows.Media.FaceAnalysis;
+using BMC.CCTVSecurity.Models;
+using Newtonsoft.Json;
+using System.IO;
 
 // The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 
@@ -391,6 +385,31 @@ namespace BMC.CCTVSecurity
                 await m_frameSource.StartAsync();
             }
         }
+        const string PushImageApiUrl = "https://bmspace.my.id/api/cctv/sendimage";
+        async Task<bool> PushImageToCloud(string CctvName, byte[] ImageData)
+        {
+            try
+            {
+                var info = new CCTVImage() { CctvName = CctvName, ImageBytes = ImageData, CreatedDate = DateTime.Now };
+                var json = JsonConvert.SerializeObject(info);
+                var hasil = await client.PostAsync(PushImageApiUrl, new StringContent(json, System.Text.Encoding.UTF8, "application/json"));
+                if (hasil.IsSuccessStatusCode)
+                {
+                    Console.WriteLine($"{DateTime.Now} => push image dari {CctvName} sukses");
+                    return true;
+                }
+                else
+                {
+                    Console.WriteLine($"{DateTime.Now} => push image dari {CctvName} gagal, {await hasil.Content.ReadAsStringAsync()}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
+            return false;
+        }
+
         /// <summary>
         /// Bind and evaluate the frame with the ObjectDetector skill
         /// </summary>
@@ -412,7 +431,29 @@ namespace BMC.CCTVSecurity
             m_evalTime = (float)m_evalStopwatch.ElapsedTicks / Stopwatch.Frequency * 1000f;
             m_evalStopwatch.Stop();
         }
+        private async Task<byte[]> EncodedBytes(SoftwareBitmap soft, Guid encoderId)
+        {
+            byte[] array = null;
 
+            // First: Use an encoder to copy from SoftwareBitmap to an in-mem stream (FlushAsync)
+            // Next:  Use ReadAsync on the in-mem stream to get byte[] array
+
+            using (var ms = new InMemoryRandomAccessStream())
+            {
+                BitmapEncoder encoder = await BitmapEncoder.CreateAsync(encoderId, ms);
+                encoder.SetSoftwareBitmap(soft);
+
+                try
+                {
+                    await encoder.FlushAsync();
+                }
+                catch (Exception ex) { return new byte[0]; }
+
+                array = new byte[ms.Size];
+                await ms.ReadAsync(array.AsBuffer(), (uint)ms.Size, InputStreamOptions.None);
+            }
+            return array;
+        }
         /// <summary>
         /// Render ObjectDetector skill results
         /// </summary>
@@ -432,12 +473,22 @@ namespace BMC.CCTVSecurity
                     {
                         await m_processedBitmapSource[CCTVIndex].SetBitmapAsync(frame.SoftwareBitmap);
                         savedBmp = frame.SoftwareBitmap;
+                        if ((bool)ChkPushToCloud.IsChecked)
+                        {
+                            var data = await EncodedBytes(savedBmp, BitmapEncoder.JpegEncoderId);
+                            await PushImageToCloud($"cctv-{CCTVIndex+1}", data);
+                        }
                     }
                     else
                     {
                         var bitmap = await SoftwareBitmap.CreateCopyFromSurfaceAsync(frame.Direct3DSurface, BitmapAlphaMode.Ignore);
                         await m_processedBitmapSource[CCTVIndex].SetBitmapAsync(bitmap);
-                        savedBmp = bitmap;
+                        savedBmp = bitmap; 
+                        if ((bool)ChkPushToCloud.IsChecked)
+                        {
+                            var data = await EncodedBytes(savedBmp, BitmapEncoder.JpegEncoderId);
+                            await PushImageToCloud($"cctv-{CCTVIndex+1}", data);
+                        }
                     }
 
                     // Retrieve and filter results if requested

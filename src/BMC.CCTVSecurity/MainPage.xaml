@@ -30,6 +30,7 @@
             <CheckBox  FontSize="20"  Margin="15 5 0 5" Name="ChkDetectMask" Content="Face Mask"></CheckBox>
             <CheckBox  FontSize="20"  Margin="15 5 0 5" Name="ChkPatrol" IsChecked="True" Content="Patrol"></CheckBox>
             <CheckBox  FontSize="20"  Margin="15 5 0 5" Name="ChkCapture" IsChecked="True" Content="Capture"></CheckBox>
+            <CheckBox  FontSize="20"  Margin="15 5 0 5" Name="ChkPushToCloud" IsChecked="True" Content="Push to Cloud"></CheckBox>
         </StackPanel>
         <Image  Name="CCTV1" Grid.Row="1" Grid.Column="0" Canvas.ZIndex="-1"  VerticalAlignment="Center" Stretch="Uniform" SizeChanged="UIProcessedPreview_SizeChanged1" />
         <Canvas Name="UIOverlayCanvas1" Grid.Row="1" Grid.Column="0" Canvas.ZIndex="0" HorizontalAlignment="Center" VerticalAlignment="Center" />
