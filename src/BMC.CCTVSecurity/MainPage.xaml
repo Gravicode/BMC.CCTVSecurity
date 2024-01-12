@@ -28,9 +28,9 @@
             <CheckBox  FontSize="20"  Margin="15 5 0 5" Name="ChkMode" Content="Guardian Mode"></CheckBox>
             <CheckBox  FontSize="20"  Margin="15 5 0 5" Name="ChkSocialDistancing" Content="Social Distancing"></CheckBox>
             <CheckBox  FontSize="20"  Margin="15 5 0 5" Name="ChkDetectMask" Content="Face Mask"></CheckBox>
-            <CheckBox  FontSize="20"  Margin="15 5 0 5" Name="ChkPatrol" IsChecked="True" Content="Patrol"></CheckBox>
+            <CheckBox  FontSize="20"  Margin="15 5 0 5" Name="ChkPatrol" IsChecked="False" Content="Patrol"></CheckBox>
             <CheckBox  FontSize="20"  Margin="15 5 0 5" Name="ChkCapture" IsChecked="True" Content="Capture"></CheckBox>
-            <CheckBox  FontSize="20"  Margin="15 5 0 5" Name="ChkPushToCloud" IsChecked="True" Content="Push to Cloud"></CheckBox>
+            <CheckBox  FontSize="20"  Margin="15 5 0 5" Name="ChkPushToCloud" IsChecked="False" Content="Push to Cloud"></CheckBox>
         </StackPanel>
         <Image  Name="CCTV1" Grid.Row="1" Grid.Column="0" Canvas.ZIndex="-1"  VerticalAlignment="Center" Stretch="Uniform" SizeChanged="UIProcessedPreview_SizeChanged1" />
         <Canvas Name="UIOverlayCanvas1" Grid.Row="1" Grid.Column="0" Canvas.ZIndex="0" HorizontalAlignment="Center" VerticalAlignment="Center" />
@@ -45,8 +45,8 @@
         <Canvas Name="UIOverlayCanvas4" Grid.Row="2" Grid.Column="1" Canvas.ZIndex="0" HorizontalAlignment="Center" VerticalAlignment="Center" />
 
         <TextBlock Name="StatusLbl" Margin="10 10 10 10" Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Height="50" />
-        <ScrollViewer Grid.Row="4" Grid.RowSpan="2" Grid.ColumnSpan="2">
-            <StackPanel>
+        <ScrollViewer HorizontalScrollMode="Auto" Grid.Row="4" Grid.RowSpan="2" Grid.ColumnSpan="2">
+            <StackPanel  >
                 <controls:Expander VerticalAlignment="Top"
                                Header="Details and options.."
                                HorizontalContentAlignment="Stretch"
@@ -68,12 +68,12 @@
                         <TextBlock Text="Available execution devices:" FontWeight="Bold"/>
                         <ListBox Name="UISkillExecutionDevices" SelectionChanged="UISkillExecutionDevices_SelectionChanged"/>
                         <ListView Name="UIObjectKindFilters" SelectionMode="Multiple" ScrollViewer.VerticalScrollBarVisibility="Visible" SelectionChanged="UIObjectKindFilters_SelectionChanged" />
-                       
+
                         <MediaElement x:Name="speechMediaElement" HorizontalAlignment="Left" VerticalAlignment="Top" Loaded="speechMediaElement_Loaded"/>
 
                     </StackPanel>
                 </controls:Expander>
-                
+
                 <TextBlock Name="UIMessageTextBlock" Text="Select an image source to start" HorizontalAlignment="Center" />
             </StackPanel>
         </ScrollViewer>

@@ -1,7 +1,5 @@
 ﻿using BMC.CCTVSecurity.Helpers;
 using FrameSourceHelper_UWP;
-using Microsoft.AI.Skills.SkillInterfacePreview;
-using Microsoft.AI.Skills.Vision.ObjectDetectorPreview;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -21,7 +19,10 @@ using Windows.UI.Xaml.Media.Imaging;
 using Windows.Storage;
 using Windows.Media.FaceAnalysis;
 using BMC.CCTVSecurity.Models;
+using Microsoft.AI.Skills.Vision.ObjectDetector;
+using Microsoft.AI.Skills.SkillInterface;
 using Newtonsoft.Json;
+using System.Drawing;
 using System.IO;
 
 // The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
@@ -33,6 +34,9 @@ namespace BMC.CCTVSecurity
     /// </summary>
     public sealed partial class MainPage : Page
     {
+        private ISkillFeatureImageDescriptor m_inputImageFeatureDescriptor = null;
+
+        private List<SkillWrapper> m_skillWrappers = new List<SkillWrapper>() { new SkillWrapper(new ObjectDetectorDescriptor()) };
         private FaceDetector m_faceDetector = null;
         Helpers.CustomVision.MaskDetection MaskDetect { set; get; }
         private IFrameSource m_frameSource = null;
@@ -59,7 +63,7 @@ namespace BMC.CCTVSecurity
         private static DateTime[] LastSaved = new DateTime[4];
         // Locks
         private SemaphoreSlim m_lock = new SemaphoreSlim(1);
-        HttpClient client = new HttpClient();
+        HttpClient client = new HttpClient(); //{ Timeout = new TimeSpan(0,0,5) };
         public MainPage()
         {
             this.InitializeComponent();
@@ -161,7 +165,8 @@ namespace BMC.CCTVSecurity
             {
                 NotifyUser("Initializing skill...");
                 m_descriptor = new ObjectDetectorDescriptor();
-                m_availableExecutionDevices = await m_descriptor.GetSupportedExecutionDevicesAsync();
+                //m_availableExecutionDevices = await m_descriptor.GetSupportedExecutionDevicesAsync();
+                m_availableExecutionDevices = m_skillWrappers[0].ExecutionDevices;
 
                 await InitializeObjectDetectorAsync();
                 await UpdateSkillUIAsync();
@@ -170,8 +175,10 @@ namespace BMC.CCTVSecurity
 
             // Ready to begin, enable buttons
             NotifyUser("Skill initialized. Select a media source from the top to begin.");
-            Loop();
+            th1 = new Thread(new ThreadStart(Loop));
+            th1.Start();
         }
+        Thread th1;
         /// <summary>
         /// Initialize the ObjectDetector skill
         /// </summary>
@@ -179,6 +186,7 @@ namespace BMC.CCTVSecurity
         /// <returns></returns>
         private async Task InitializeObjectDetectorAsync(ISkillExecutionDevice device = null)
         {
+            /*
             if (device != null)
             {
                 m_skill = await m_descriptor.CreateSkillAsync(device) as ObjectDetectorSkill;
@@ -186,8 +194,15 @@ namespace BMC.CCTVSecurity
             else
             {
                 m_skill = await m_descriptor.CreateSkillAsync() as ObjectDetectorSkill;
-            }
-            m_binding = await m_skill.CreateSkillBindingAsync() as ObjectDetectorBinding;
+            }*/
+            if(device == null)
+                device = m_availableExecutionDevices.First();
+
+            await m_skillWrappers[0].InitializeSkillAsync(device);
+            m_skill = m_skillWrappers[0].Skill as ObjectDetectorSkill;
+            m_binding = m_skillWrappers[0].Binding as ObjectDetectorBinding;
+            //m_binding = await m_skill.CreateSkillBindingAsync() as ObjectDetectorBinding;
+            m_inputImageFeatureDescriptor = m_skillWrappers[0].Binding["InputImage"].Descriptor as SkillFeatureImageDescriptor;
         }
         /// <summary>
         /// Print a message to the UI
@@ -213,13 +228,13 @@ namespace BMC.CCTVSecurity
             if (Dispatcher.HasThreadAccess)
             {
                 // Show skill description members in UI
-                UISkillName.Text = m_descriptor.Name;
+                UISkillName.Text = m_descriptor.Information.Name;
 
-                UISkillDescription.Text = $"{m_descriptor.Description}" +
-                $"\n\tauthored by: {m_descriptor.Version.Author}" +
-                $"\n\tpublished by: {m_descriptor.Version.Author}" +
-                $"\n\tversion: {m_descriptor.Version.Major}.{m_descriptor.Version.Minor}" +
-                $"\n\tunique ID: {m_descriptor.Id}";
+                UISkillDescription.Text = $"{m_descriptor.Information.Description}" +
+                $"\n\tauthored by: {m_descriptor.Information.Author}" +
+                $"\n\tpublished by: {m_descriptor.Information.Publisher}" +
+                $"\n\tversion: {m_descriptor.Information.Version.Major}.{m_descriptor.Information.Version.Minor}" +
+                $"\n\tunique ID: {m_descriptor.Information.Id}";
 
                 var inputDesc = m_descriptor.InputFeatureDescriptors[0] as SkillFeatureImageDescriptor;
                 UISkillInputDescription.Text = $"\tName: {inputDesc.Name}" +
@@ -242,12 +257,22 @@ namespace BMC.CCTVSecurity
 
                     // Display available execution devices
                     UISkillExecutionDevices.ItemsSource = m_availableExecutionDevices.Select((device) => $"{device.ExecutionDeviceKind} | {device.Name}");
-
+                    /*
                     // Set SelectedIndex to index of currently selected device
                     for (int i = 0; i < m_availableExecutionDevices.Count; i++)
                     {
                         if (m_availableExecutionDevices[i].ExecutionDeviceKind == m_binding.Device.ExecutionDeviceKind
                             && m_availableExecutionDevices[i].Name == m_binding.Device.Name)
+                        {
+                            UISkillExecutionDevices.SelectedIndex = i;
+                            break;
+                        }
+                    }*/
+                    // Set SelectedIndex to index of currently selected device
+                    for (int i = 0; i < m_availableExecutionDevices.Count; i++)
+                    {
+                        if (m_availableExecutionDevices[i].ExecutionDeviceKind == m_skillWrappers[0].Binding.Device.ExecutionDeviceKind
+                            && m_availableExecutionDevices[i].Name == m_skillWrappers[0].Binding.Device.Name)
                         {
                             UISkillExecutionDevices.SelectedIndex = i;
                             break;
@@ -259,13 +284,15 @@ namespace BMC.CCTVSecurity
                 // Populate ObjectKind filters list with all possible classes supported by the detector
                 // Exclude Undefined label (not used by the detector) from selector list
                 UIObjectKindFilters.ItemsSource = Enum.GetValues(typeof(ObjectKind)).Cast<ObjectKind>().Where(kind => kind != ObjectKind.Undefined);
+                //UIConfidenceThresholdControl.Value = (m_skillWrappers[0].Binding["InputConfidenceThreshold"].FeatureValue as SkillFeatureTensorFloatValue).GetAsVectorView().First();
+
             }
             else
             {
                 await Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, async () => await UpdateSkillUIAsync());
             }
         }
-        async Task Loop()
+        async void Loop()
         {
             //int index = 0;
             Random rnd = new Random(Environment.TickCount);
@@ -273,25 +300,32 @@ namespace BMC.CCTVSecurity
             {
                 //index = 0;
                 for (int index = 0; index < DataConfig.CCTVCount; index++)
-                //Parallel.For(0, 3, async(index) =>
+                //Parallel.For(0, 3, async (index) =>
                 {
                     try
                     {
                         var itemUrl = DataConfig.CCTVURL[index];
 
                         var data = await client.GetByteArrayAsync(itemUrl + rnd.Next(100));
+                        
                         //BitmapImage bmp = new BitmapImage();
                         SoftwareBitmap outputBitmap = null;
                         using (InMemoryRandomAccessStream stream = new InMemoryRandomAccessStream())
                         {
                             await stream.WriteAsync(data.AsBuffer());
                             stream.Seek(0);
+
+                            //var decoder = await Windows.Graphics.Imaging.BitmapDecoder.CreateAsync(stream);
+                            //outputBitmap = await decoder.GetSoftwareBitmapAsync();
                             //await bmp.SetSourceAsync(stream);
                             //new
-                            ImageEncodingProperties properties = ImageEncodingProperties.CreateJpeg();
+                            
+                            //ImageEncodingProperties properties = ImageEncodingProperties.CreateJpeg();
 
                             var decoder = await BitmapDecoder.CreateAsync(stream);
                             outputBitmap = await decoder.GetSoftwareBitmapAsync();
+                            
+                            //SoftwareBitmap outputBitmap = SoftwareBitmap.CreateCopyFromBuffer(b.PixelBuffer, BitmapPixelFormat.Bgra8, b.PixelWidth, b.PixelHeight, BitmapAlphaMode.Premultiplied);
                         }
 
                         if (outputBitmap != null)
@@ -311,7 +345,7 @@ namespace BMC.CCTVSecurity
                     {
                         Debug.WriteLine(ex);
                     }
-                }
+                }//);
                 Thread.Sleep(DataConfig.EvalInterval);
             }
 
@@ -418,7 +452,7 @@ namespace BMC.CCTVSecurity
         private async Task DetectObjectsAsync(VideoFrame frame)
         {
             m_evalStopwatch.Restart();
-
+            
             // Bind
             await m_binding.SetInputImageAsync(frame);
 
@@ -430,6 +464,7 @@ namespace BMC.CCTVSecurity
 
             m_evalTime = (float)m_evalStopwatch.ElapsedTicks / Stopwatch.Frequency * 1000f;
             m_evalStopwatch.Stop();
+
         }
         private async Task<byte[]> EncodedBytes(SoftwareBitmap soft, Guid encoderId)
         {

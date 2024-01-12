@@ -1,7 +1,7 @@
 ﻿// Copyright (C) Microsoft Corporation. All rights reserved.
 
 using BMC.CCTVSecurity.Helpers.CustomVision;
-using Microsoft.AI.Skills.Vision.ObjectDetectorPreview;
+using Microsoft.AI.Skills.Vision.ObjectDetector;
 using System.Collections.Generic;
 using Windows.Foundation;
 using Windows.UI;
