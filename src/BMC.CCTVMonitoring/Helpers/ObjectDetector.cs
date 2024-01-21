@@ -16,7 +16,7 @@ namespace BMC.CCTVMonitoring.Helpers
         public int No { get; set; }
         public DateTime DetectedTime { set; get; } = DateTime.Now;
         public List<YoloPrediction> Predictions { get; set; }
-        public Bitmap AnotatedImage { get; set; }
+        public Image AnotatedImage { get; set; }
     }
     public class ObjectDetector
     {
@@ -85,7 +85,7 @@ namespace BMC.CCTVMonitoring.Helpers
                                 new PointF(x, y));
             }
             graphics.Flush();
-            var newObj = new DetectedObject() { DetectedTime = DateTime.Now, No = No, Predictions = predictions, AnotatedImage = image as Bitmap };
+            var newObj = new DetectedObject() { DetectedTime = DateTime.Now, No = No, Predictions = predictions, AnotatedImage = image };
             ListDetections.Enqueue(newObj);
             //keep the max items = 100
             while (ListDetections.Count > MaxItem)

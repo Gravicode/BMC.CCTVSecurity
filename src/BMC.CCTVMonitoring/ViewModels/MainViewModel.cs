@@ -10,7 +10,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 
 namespace BMC.CCTVMonitoring.ViewModels;
-
+using Bitmap = Avalonia.Media.Imaging.Bitmap;
 public class LabelItem
 {
     public string Name { get; set; }
@@ -115,7 +115,7 @@ public partial class MainViewModel : ViewModelBase
             if (item != null && b.Predictions.Count>0)
             {
                 Dispatcher.UIThread.Post(() => {
-                    item.Content = b.AnotatedImage;
+                    item.Content = b.AnotatedImage.ConvertToAvaloniaBitmap();
                     item.Info = "Update: " + b.DetectedTime.ToString("dd/MM/yy HH:mm:ss");
                     Console.WriteLine("Write to DB");
                     var obj = new ObjectDetect() { CCTVNo = item.No, DetectedTime = b.DetectedTime, Url = item.Url, ObjectCount = b.Predictions.Count };
