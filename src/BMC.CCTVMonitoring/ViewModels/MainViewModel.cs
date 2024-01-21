@@ -105,6 +105,7 @@ public partial class MainViewModel : ViewModelBase
     }
     void CaptureCCTV()
     {
+        var filters = Labels.Where(x=>x.Selected).Select(x => x.Name).ToList();
         Parallel.For(0, dataConfig.CCTVCount,
                   async index => {
                       try
@@ -115,7 +116,7 @@ public partial class MainViewModel : ViewModelBase
                           if (bytes != null)
                           {
                               await Console.Out.WriteLineAsync("Perform inference");
-                              detector.Detect(bytes, index);
+                              detector.Detect(bytes,filters,index);
                           }
                       }
                       catch (Exception ex)

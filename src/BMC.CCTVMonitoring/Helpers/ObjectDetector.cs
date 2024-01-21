@@ -1,4 +1,5 @@
-﻿using System;
+﻿using BMC.CCTVMonitoring.ViewModels;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Drawing;
@@ -60,7 +61,7 @@ namespace BMC.CCTVMonitoring.Helpers
             return ListDetections.Reverse().ToList();
         }
 
-        public void Detect(byte[] ImageBytes, int No = 0)
+        public void Detect(byte[] ImageBytes, List<string> Filter, int No = 0)
         {
             if (!IsReady) return;
             if(ImageBytes is null) return;
@@ -69,7 +70,11 @@ namespace BMC.CCTVMonitoring.Helpers
             var predictions = yolo.Predict(image);  // now you can use numsharp to parse output data like this : var ret = yolo.Predict(image,useNumpy:true);
                                                     // draw box
             using var graphics = Graphics.FromImage(image);
-           
+            var removed = predictions.Where(x => Filter.Contains(x.Label.Name)).ToList();
+            foreach (var item in removed)
+            {
+                predictions.Remove(item);
+            }
             foreach (var prediction in predictions) // iterate predictions to draw results
             {
                 double score = Math.Round(prediction.Score, 2);
