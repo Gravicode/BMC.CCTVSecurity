@@ -14,6 +14,11 @@ namespace Yolov7net
         private readonly YoloModel _model = new YoloModel();
         private bool _useNumpy;
 
+        public List<string?> GetLabels()
+        {
+            return _model.Labels.Select(x=>x.Name).ToList();
+        }
+
         public Yolov8(string modelPath, bool useCuda = false)
         {
 

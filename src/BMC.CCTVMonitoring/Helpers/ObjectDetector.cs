@@ -15,7 +15,7 @@ namespace BMC.CCTVMonitoring.Helpers
         public int No { get; set; }
         public DateTime DetectedTime { set; get; } = DateTime.Now;
         public List<YoloPrediction> Predictions { get; set; }
-        public Image AnotatedImage { get; set; }
+        public Bitmap AnotatedImage { get; set; }
     }
     public class ObjectDetector
     {
@@ -28,7 +28,10 @@ namespace BMC.CCTVMonitoring.Helpers
         {
             Setup();
         }
-
+        public List<string> GetLabels()
+        {
+            return yolo?.GetLabels();
+        }
         void Reset()
         {
             ListDetections.Clear();
@@ -38,7 +41,8 @@ namespace BMC.CCTVMonitoring.Helpers
             try
             {
                 // init Yolov8 with onnx (include nms results)file path
-                yolo = new Yolov8("./Assets/yolov7-tiny_640x640.onnx", true);
+                yolo = new Yolov8("./Assets/yolov7-tiny_640x640.onnx", false);
+                
                 // setup labels of onnx model 
                 yolo.SetupYoloDefaultLabels();   // use custom trained model should use your labels like: yolo.SetupLabels(string[] labels)
                 IsReady = true;
@@ -75,7 +79,7 @@ namespace BMC.CCTVMonitoring.Helpers
                                 new Font("Consolas", 16, GraphicsUnit.Pixel), new SolidBrush(prediction.Label.Color),
                                 new PointF(x, y));
             }
-            var newObj = new DetectedObject() { DetectedTime = DateTime.Now, No = No, Predictions = predictions, AnotatedImage = image };
+            var newObj = new DetectedObject() { DetectedTime = DateTime.Now, No = No, Predictions = predictions, AnotatedImage = image as Bitmap };
             ListDetections.Enqueue(newObj);
             //keep the max items = 100
             while (ListDetections.Count > MaxItem)

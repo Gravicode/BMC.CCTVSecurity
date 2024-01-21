@@ -13,38 +13,68 @@ namespace BMC.CCTVMonitoring.Helpers
     {
         const string ConfigFile = "Config.json";
         public static string[] RoomName = { "backyard", "parking area", "living room", "top floor" };
-        public string MqttHost { set; get; } = "broker.emqx.io";//"13.76.156.239";
-        public string MqttUser { set; get; } = "loradev_mqtt";
-        public string MqttPass { set; get; } = "test123";
-        public string MailTo { set; get; } = "mifmasterz@gmail.com";
-        public string MailFrom { set; get; } = "mifmasterz@outlook.com";
-        public string SmsTo { set; get; } = "+628174810345";
+        public string MqttHost { set; get; } 
+        public string MqttUser { set; get; } 
+        public string MqttPass { set; get; } 
+        public string MailTo { set; get; } 
+        public string MailFrom { set; get; } 
+        public string SmsTo { set; get; } 
 
-        public string UrlMail { set; get; } = "https://bmcsecurityweb.azurewebsites.net/svc/sendmail.ashx";
-        public string UrlSms { set; get; } = "https://bmcsecurityweb.azurewebsites.net/svc/sms.ashx";
-        public int EvalInterval { set; get; } = 3000;
-        public int CCTVCount { set; get; } = 4;
-        public string CCTV_IP  { set; get; }= "192.168.1.10";
-        public int CaptureIntervalSecs { set; get; } = 30;
+        public string UrlMail { set; get; } 
+        public string UrlSms { set; get; } 
+        public int EvalInterval { set; get; } 
+        public int CCTVCount { set; get; } 
+        public string CCTV_IP  { set; get; }
+        public int CaptureIntervalSecs { set; get; } 
         //,  
-        public List<string> CCTVURL = new List<string> { $"http://[CCTV_IP]/cgi-bin/snapshot.cgi?chn=0&u=admin&p=&q=0&d=1&rand=",
+        public List<string> CCTVURL { set; get; }
+        public DataConfig()
+        {
+           
+        }
+
+        public void SetDefault()
+        {
+            MqttHost = "broker.emqx.io";//"13.76.156.239";
+            MqttUser = "loradev_mqtt";
+            MqttPass = "test123";
+            MailTo = "mifmasterz@gmail.com";
+            MailFrom = "mifmasterz@outlook.com";
+            SmsTo = "+628174810345";
+
+            UrlMail = "https://bmcsecurityweb.azurewebsites.net/svc/sendmail.ashx";
+            UrlSms = "https://bmcsecurityweb.azurewebsites.net/svc/sms.ashx";
+            EvalInterval = 3000;
+            CCTVCount = 4;
+            CCTV_IP = "192.168.1.10";
+            CaptureIntervalSecs = 30;
+            //,  
+            CCTVURL = new List<string> { $"http://[CCTV_IP]/cgi-bin/snapshot.cgi?chn=0&u=admin&p=&q=0&d=1&rand=",
         $"http://[CCTV_IP]/cgi-bin/snapshot.cgi?chn=1&u=admin&p=&q=0&d=1&rand=",
         $"http://[CCTV_IP]/cgi-bin/snapshot.cgi?chn=2&u=admin&p=&q=0&d=1&rand=",
         $"http://[CCTV_IP]/cgi-bin/snapshot.cgi?chn=3&u=admin&p=&q=0&d=1&rand="};
-        public DataConfig()
+        }
+
+        public void Init()
         {
             if (!IsConfigExist())
+            {
+                //set default setting
+                this.SetDefault();
                 Save();
+            }
             else
                 Load();
-            for(var i=0;i<CCTVURL.Count;i++) {
+            for (var i = 0; i < CCTVURL.Count; i++)
+            {
                 CCTVURL[i] = CCTVURL[i].Replace("[CCTV_IP]", this.CCTV_IP);
             }
         }
 
         bool IsConfigExist()
         {
-            return File.Exists(ConfigFile);
+            var exist = File.Exists(ConfigFile);
+            return exist;
         }
         public void Save()
         {

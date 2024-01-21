@@ -1,25 +1,60 @@
 ﻿using BMC.CCTVMonitoring.Helpers;
-using Microsoft.EntityFrameworkCore.Storage;
+using CommunityToolkit.Mvvm.ComponentModel;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Drawing;
-using System.Dynamic;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 
 namespace BMC.CCTVMonitoring.ViewModels;
+
+public class LabelItem
+{
+    public string Name { get; set; }
+    public bool Selected { get; set; } = false;
+}
 public class CCTVScreen
 {
     public int No { get; set; }
     public string Url { get; set; }
-    public Image Content { get; set; }
+    public Bitmap Content { get; set; }
 }
 public partial class MainViewModel : ViewModelBase
 {
+    private string _status = "Welcome to BMC CCTV Monitoring";
+    public string Status
+    {
+        get => _status;
+        set => SetProperty(ref _status, value);
+    }
+ 
+    private bool _PatrolMode = true;
+    public bool PatrolMode
+    {
+        get => _PatrolMode;
+        set => SetProperty(ref _PatrolMode, value);
+    }
+
+    private bool _PushToCloud = false;
+    public bool PushToCloud
+    {
+        get => _PushToCloud;
+        set => SetProperty(ref _PushToCloud, value);
+    }
+
+    private bool _PlaySound = true;
+    public bool PlaySound
+    {
+        get => _PlaySound;
+        set => SetProperty(ref _PlaySound, value);
+    }
+    
     public ObjectDetector detector { set; get; }
     public DataConfig dataConfig { set; get; }
-    public List<CCTVScreen> Screen { get; set; }
+    public ObservableCollection<CCTVScreen> Screen { get; set; }
+    public ObservableCollection<LabelItem> Labels { get; set; }
     public string Greeting => "Welcome to Avalonia!";
     System.Timers.Timer timer { set; get; }
     HttpClient client { set; get; }
@@ -33,8 +68,10 @@ public partial class MainViewModel : ViewModelBase
     void Setup()
     {
         detector = new ObjectDetector();
+        
         dataConfig = new DataConfig();
-        Screen = new List<CCTVScreen>();
+        dataConfig.Init();
+        Screen = new ();
         var count = 0;
         foreach (var item in dataConfig.CCTVURL)
         {
@@ -58,6 +95,13 @@ public partial class MainViewModel : ViewModelBase
                 context.SaveChanges();
             }
         };
+        //labels
+        Labels = new();
+        
+        var labels = detector.GetLabels();
+        labels.ForEach(x => {
+            Labels.Add(new LabelItem() { Name = x, Selected = (x == "person") });
+        });
     }
     void CaptureCCTV()
     {
@@ -84,11 +128,12 @@ public partial class MainViewModel : ViewModelBase
     public void Start()
     {
         timer.Start();
+        this.Status = "App is running";
 
     }
     public void Stop()
     {
         timer.Stop();
-
+        this.Status = "App has been stopped";
     }
 }
