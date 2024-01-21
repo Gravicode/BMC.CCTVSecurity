@@ -1,4 +1,5 @@
-﻿using BMC.CCTVMonitoring.Helpers;
+﻿using Avalonia.Threading;
+using BMC.CCTVMonitoring.Helpers;
 using CommunityToolkit.Mvvm.ComponentModel;
 using System;
 using System.Collections.Generic;
@@ -15,11 +16,37 @@ public class LabelItem
     public string Name { get; set; }
     public bool Selected { get; set; } = false;
 }
-public class CCTVScreen
+public class CCTVScreen:ObservableObject
 {
-    public int No { get; set; }
-    public string Url { get; set; }
-    public Bitmap Content { get; set; }
+    private int _No ;
+    public int No
+    {
+        get => _No;
+        set => SetProperty(ref _No, value);
+    }
+
+    private string _Url ;
+    public string Url
+    {
+        get => _Url;
+        set => SetProperty(ref _Url, value);
+    }
+
+    private Bitmap _Content ;
+    public Bitmap Content
+    {
+        get => _Content;
+        set => SetProperty(ref _Content, value);
+    }
+
+    private string _Info ;
+    public string Info
+    {
+        get => _Info;
+        set => SetProperty(ref _Info, value);
+    }
+   
+   
 }
 public partial class MainViewModel : ViewModelBase
 {
@@ -85,14 +112,16 @@ public partial class MainViewModel : ViewModelBase
         context.Database.EnsureCreated();
         detector.OnDetectedObject += (Object? a, DetectedObject b) => {
             var item = Screen.Where(x => x.No == b.No).FirstOrDefault();
-            if (item != null)
+            if (item != null && b.Predictions.Count>0)
             {
-                item.Content = b.AnotatedImage;
-
-                Console.WriteLine("Write to DB");
-                var obj = new ObjectDetect() { CCTVNo = item.No, DetectedTime = b.DetectedTime, Url = item.Url, ObjectCount = b.Predictions.Count };
-                context.ObjectDetects.Add(obj);
-                context.SaveChanges();
+                Dispatcher.UIThread.Post(() => {
+                    item.Content = b.AnotatedImage;
+                    item.Info = "Update: " + b.DetectedTime.ToString("dd/MM/yy HH:mm:ss");
+                    Console.WriteLine("Write to DB");
+                    var obj = new ObjectDetect() { CCTVNo = item.No, DetectedTime = b.DetectedTime, Url = item.Url, ObjectCount = b.Predictions.Count };
+                    context.ObjectDetects.Add(obj);
+                    context.SaveChanges();
+                });
             }
         };
         //labels

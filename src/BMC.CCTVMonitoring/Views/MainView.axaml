@@ -71,6 +71,9 @@
 								<TextBlock VerticalAlignment="Center">
 									<Run Text="CCTV: "></Run>
 									<Run FontWeight="Bold" Text="{Binding No}"></Run>
+									<Run Text=" - "></Run>
+									<Run Text="{Binding Info}"></Run>
+
 								</TextBlock>
 								<Border Margin="0,10,10,10"
 									CornerRadius="2"

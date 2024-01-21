@@ -12,7 +12,10 @@ namespace Yolov7net
     {
         private readonly InferenceSession _inferenceSession;
         private readonly YoloModel _model = new YoloModel();
-
+        public List<string?> GetLabels()
+        {
+            return _model.Labels.Select(x => x.Name).ToList();
+        }
         public Yolov7(string modelPath, bool useCuda = false)
         {
             if (useCuda)

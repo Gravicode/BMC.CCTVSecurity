@@ -24,7 +24,7 @@ namespace BMC.CCTVMonitoring.Helpers
         ConcurrentQueue<DetectedObject> ListDetections = new ConcurrentQueue<DetectedObject>();
         public EventHandler<DetectedObject> OnDetectedObject;
         bool IsReady { set; get; }
-        Yolov8 yolo { set; get; }
+        Yolov7 yolo { set; get; }
         public ObjectDetector()
         {
             Setup();
@@ -42,7 +42,7 @@ namespace BMC.CCTVMonitoring.Helpers
             try
             {
                 // init Yolov8 with onnx (include nms results)file path
-                yolo = new Yolov8("./Assets/yolov7-tiny_640x640.onnx", false);
+                yolo = new Yolov7("./Assets/yolov7-tiny_640x640.onnx", false);
                 
                 // setup labels of onnx model 
                 yolo.SetupYoloDefaultLabels();   // use custom trained model should use your labels like: yolo.SetupLabels(string[] labels)
@@ -70,7 +70,7 @@ namespace BMC.CCTVMonitoring.Helpers
             var predictions = yolo.Predict(image);  // now you can use numsharp to parse output data like this : var ret = yolo.Predict(image,useNumpy:true);
                                                     // draw box
             using var graphics = Graphics.FromImage(image);
-            var removed = predictions.Where(x => Filter.Contains(x.Label.Name)).ToList();
+            var removed = predictions.Where(x => !Filter.Contains(x.Label.Name)).ToList();
             foreach (var item in removed)
             {
                 predictions.Remove(item);
@@ -84,6 +84,7 @@ namespace BMC.CCTVMonitoring.Helpers
                                 new Font("Consolas", 16, GraphicsUnit.Pixel), new SolidBrush(prediction.Label.Color),
                                 new PointF(x, y));
             }
+            graphics.Flush();
             var newObj = new DetectedObject() { DetectedTime = DateTime.Now, No = No, Predictions = predictions, AnotatedImage = image as Bitmap };
             ListDetections.Enqueue(newObj);
             //keep the max items = 100
