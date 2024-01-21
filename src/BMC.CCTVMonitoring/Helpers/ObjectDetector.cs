@@ -84,7 +84,7 @@ namespace BMC.CCTVMonitoring.Helpers
                                 new Font("Consolas", 16, GraphicsUnit.Pixel), new SolidBrush(prediction.Label.Color),
                                 new PointF(x, y));
             }
-            graphics.Flush();
+            
             var newObj = new DetectedObject() { DetectedTime = DateTime.Now, No = No, Predictions = predictions, AnotatedImage = image };
             ListDetections.Enqueue(newObj);
             //keep the max items = 100
