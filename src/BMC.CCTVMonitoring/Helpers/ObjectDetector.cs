@@ -66,7 +66,7 @@ namespace BMC.CCTVMonitoring.Helpers
             if (!IsReady) return;
             if(ImageBytes is null) return;
             var ms = new MemoryStream(ImageBytes);
-            using var image = Image.FromStream(ms);
+            var image = Image.FromStream(ms);
             var predictions = yolo.Predict(image);  // now you can use numsharp to parse output data like this : var ret = yolo.Predict(image,useNumpy:true);
                                                     // draw box
             using var graphics = Graphics.FromImage(image);
