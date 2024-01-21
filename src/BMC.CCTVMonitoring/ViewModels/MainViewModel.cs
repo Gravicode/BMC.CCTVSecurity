@@ -77,7 +77,7 @@ public partial class MainViewModel : ViewModelBase
         get => _PlaySound;
         set => SetProperty(ref _PlaySound, value);
     }
-    
+    public bool IsSoundPlaying { get; set; }
     public ObjectDetector detector { set; get; }
     public DataConfig dataConfig { set; get; }
     public ObservableCollection<CCTVScreen> Screen { get; set; }
@@ -110,10 +110,30 @@ public partial class MainViewModel : ViewModelBase
         client = new();
         context = new ObjectContext();
         context.Database.EnsureCreated();
-        detector.OnDetectedObject += (Object? a, DetectedObject b) => {
+        detector.OnDetectedObject += async(Object? a, DetectedObject b) => {
             var item = Screen.Where(x => x.No == b.No).FirstOrDefault();
             if (item != null && b.Predictions.Count>0)
             {
+                if (!IsSoundPlaying && PlaySound)
+                {
+                    IsSoundPlaying = true;
+                    try
+                    {
+                        await Sound.PlaySound("./Assets/monster.mp3");
+                    }
+                    catch (Exception ex)
+                    {
+                        await Console.Out.WriteLineAsync("sound error..");
+
+                    }
+                    finally
+                    {
+                        IsSoundPlaying = false;
+
+                    }
+                  
+                    
+                }
                 Dispatcher.UIThread.Post(() => {
                     item.Content = b.AnotatedImage.ConvertToAvaloniaBitmap();
                     item.Info = "Update: " + b.DetectedTime.ToString("dd/MM/yy HH:mm:ss");
