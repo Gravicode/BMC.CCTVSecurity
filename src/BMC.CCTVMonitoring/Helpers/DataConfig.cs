@@ -18,8 +18,8 @@ namespace BMC.CCTVMonitoring.Helpers
         public string MqttPass { set; get; } 
         public string MailTo { set; get; } 
         public string MailFrom { set; get; } 
-        public string SmsTo { set; get; } 
-
+        public string SmsTo { set; get; }
+        public string SnapshotDir { set; get; }
         public string UrlMail { set; get; } 
         public string UrlSms { set; get; } 
         public int EvalInterval { set; get; } 
@@ -48,6 +48,7 @@ namespace BMC.CCTVMonitoring.Helpers
             CCTVCount = 4;
             CCTV_IP = "192.168.1.10";
             CaptureIntervalSecs = 30;
+            SnapshotDir = Path.Combine( Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "cctv");
             //,  
             CCTVURL = new List<string> { $"http://[CCTV_IP]/cgi-bin/snapshot.cgi?chn=0&u=admin&p=&q=0&d=1&rand=",
         $"http://[CCTV_IP]/cgi-bin/snapshot.cgi?chn=1&u=admin&p=&q=0&d=1&rand=",
@@ -100,6 +101,7 @@ namespace BMC.CCTVMonitoring.Helpers
             this.MqttHost = obj.MqttHost;
             this.MqttPass = obj.MqttPass;
             this.MqttUser = obj.MqttUser;
+            this.SnapshotDir = obj.SnapshotDir;
             
         }
     }

@@ -5,6 +5,8 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Drawing;
+using System.Drawing.Imaging;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -141,6 +143,8 @@ public partial class MainViewModel : ViewModelBase
                     var obj = new ObjectDetect() { CCTVNo = item.No, DetectedTime = b.DetectedTime, Url = item.Url, ObjectCount = b.Predictions.Count };
                     context.ObjectDetects.Add(obj);
                     context.SaveChanges();
+                    var fname = Guid.NewGuid().ToString().Replace("-", "_") + ".jpg";
+                    //b.AnotatedImage.Save(dataConfig.SnapshotDir +"/"+ fname,ImageFormat.Jpeg);
                 });
             }
         };
@@ -151,6 +155,11 @@ public partial class MainViewModel : ViewModelBase
         labels.ForEach(x => {
             Labels.Add(new LabelItem() { Name = x, Selected = (x == "person") });
         });
+
+        if (!Directory.Exists(dataConfig.SnapshotDir))
+        {
+            Directory.CreateDirectory(dataConfig.SnapshotDir);
+        }
     }
     void CaptureCCTV()
     {
