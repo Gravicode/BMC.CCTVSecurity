@@ -14,11 +14,11 @@
 	<ScrollViewer>
 		<StackPanel Orientation="Horizontal">
 			<StackPanel Orientation="Vertical">
-				<Expander VerticalAlignment="Top" Margin="10">
+				<Expander VerticalAlignment="Top" Margin="5">
 					<Expander.Header>
 						Settings
 					</Expander.Header>
-					<Grid RowDefinitions="*,*,*" ColumnDefinitions="*,*">
+					<Grid RowDefinitions="*,*,*,*" ColumnDefinitions="*,*">
 						<TextBlock Grid.Row="0" Grid.Column="0"
 								   VerticalAlignment="Center">Patrol Mode</TextBlock>
 						<CheckBox Margin="5" Grid.Row="0" Grid.Column="1" IsChecked="{Binding PatrolMode}" />
@@ -28,9 +28,13 @@
 						<TextBlock Grid.Row="2" Grid.Column="0"
 								   VerticalAlignment="Center">Push to Cloud</TextBlock>
 						<CheckBox Margin="5" Grid.Row="2" Grid.Column="1" IsChecked="{Binding PushToCloud}" />
+						<TextBlock Grid.Row="3" Grid.Column="0"
+								   VerticalAlignment="Center">Save to Disk</TextBlock>
+						<CheckBox Margin="5" Grid.Row="3" Grid.Column="1" IsChecked="{Binding SaveToDisk}" />
+
 					</Grid>
 				</Expander>
-				<Expander VerticalAlignment="Top" Margin="10">
+				<Expander VerticalAlignment="Top" Margin="5">
 					<Expander.Header>
 						Object Filter 
 					</Expander.Header>
@@ -47,7 +51,7 @@
 						</ItemsControl.ItemTemplate>
 					</ItemsControl>
 				</Expander>
-				<Expander VerticalAlignment="Top" Margin="10">
+				<Expander VerticalAlignment="Top" Margin="5">
 					<Expander.Header>
 						Controls
 					</Expander.Header>
@@ -60,7 +64,7 @@
 					</StackPanel>
 				</Expander>
 			</StackPanel>
-			<Expander VerticalAlignment="Top" Margin="10">
+			<Expander VerticalAlignment="Top" Margin="5">
 				<Expander.Header>
 					CCTV
 				</Expander.Header>

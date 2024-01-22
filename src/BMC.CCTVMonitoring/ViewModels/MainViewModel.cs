@@ -1,6 +1,8 @@
 ﻿using Avalonia.Threading;
 using BMC.CCTVMonitoring.Helpers;
+using BMC.CCTVMonitoring.Models;
 using CommunityToolkit.Mvvm.ComponentModel;
+using SkiaSharp.Views.Desktop;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -72,6 +74,13 @@ public partial class MainViewModel : ViewModelBase
         get => _PushToCloud;
         set => SetProperty(ref _PushToCloud, value);
     }
+    
+    private bool _SaveToDisk = true;
+    public bool SaveToDisk
+    {
+        get => _SaveToDisk;
+        set => SetProperty(ref _SaveToDisk, value);
+    }
 
     private bool _PlaySound = true;
     public bool PlaySound
@@ -88,6 +97,7 @@ public partial class MainViewModel : ViewModelBase
     System.Timers.Timer timer { set; get; }
     HttpClient client { set; get; }
     ObjectContext context { set; get; }
+    StorageObjectService storageSvc { set; get; }
 
     int Delay = 5000;
     public MainViewModel()
@@ -106,6 +116,7 @@ public partial class MainViewModel : ViewModelBase
         {
             Screen.Add(new CCTVScreen() { No = count++, Content = null, Url = item });
         }
+        Delay = dataConfig.CaptureIntervalSecs*1000;
         timer = new(interval: Delay);
         timer.Elapsed += (sender, e) => CaptureCCTV();
 
@@ -133,25 +144,43 @@ public partial class MainViewModel : ViewModelBase
                         IsSoundPlaying = false;
 
                     }
-                  
-                    
                 }
-                Dispatcher.UIThread.Post(() => {
+                var FileUrl = item.Url;
+
+                if (SaveToDisk)
+                {
+                    //save to disk
+                    var fname = $"local_{b.DetectedTime.ToString("yyyyMMdd")}_{b.DetectedTime.ToString("HHmmss")}_CCTV{b.No}.jpg";
+                    var skbmp = (b.AnotatedImage as System.Drawing.Bitmap).ToSKBitmap();
+                    var path = dataConfig.SnapshotDir + "/" + fname;
+                    await ImageHelper.SaveToDisk(skbmp, path);
+                    FileUrl = path;
+                    //b.AnotatedImage.Save(dataConfig.SnapshotDir +"/"+ fname,ImageFormat.Jpeg);
+                }
+                if (PushToCloud)
+                {
+                    //push to cloud
+                    var fname = $"cloud_{b.DetectedTime.ToString("yyyyMMdd")}_{b.DetectedTime.ToString("HHmmss")}_CCTV{b.No}.png";
+                    var bytes = ImageHelper.ImageToBytes(b.AnotatedImage);
+                    await storageSvc.UploadFile(fname, bytes);
+                    FileUrl = fname;
+                }
+                Dispatcher.UIThread.Post(async() => {
                     item.Content = b.AnotatedImage.ConvertToAvaloniaBitmap();
                     item.Info = "Update: " + b.DetectedTime.ToString("dd/MM/yy HH:mm:ss");
                     Console.WriteLine("Write to DB");
-                    var obj = new ObjectDetect() { CCTVNo = item.No, DetectedTime = b.DetectedTime, Url = item.Url, ObjectCount = b.Predictions.Count };
+                    var obj = new ObjectDetect() { CCTVNo = item.No, DetectedTime = b.DetectedTime, Url = FileUrl, ObjectCount = b.Predictions.Count };
                     context.ObjectDetects.Add(obj);
                     context.SaveChanges();
-                    var fname = Guid.NewGuid().ToString().Replace("-", "_") + ".jpg";
-                    //b.AnotatedImage.Save(dataConfig.SnapshotDir +"/"+ fname,ImageFormat.Jpeg);
+                   
                 });
+                
             }
         };
         //labels
         Labels = new();
         
-        var labels = detector.GetLabels();
+        var labels = detector.GetLabels().Order().ToList();
         labels.ForEach(x => {
             Labels.Add(new LabelItem() { Name = x, Selected = (x == "person") });
         });
@@ -160,6 +189,12 @@ public partial class MainViewModel : ViewModelBase
         {
             Directory.CreateDirectory(dataConfig.SnapshotDir);
         }
+        //storage
+        var setting = new StorageSetting() { };
+        setting.Bucket = dataConfig.StorageBucket;
+        setting.SecretKey = dataConfig.StorageSecret;
+        setting.AccessKey = dataConfig.StorageAccess;
+        storageSvc = new(setting);
     }
     void CaptureCCTV()
     {

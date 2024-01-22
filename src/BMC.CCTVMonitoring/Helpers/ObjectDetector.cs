@@ -3,6 +3,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -69,12 +70,13 @@ namespace BMC.CCTVMonitoring.Helpers
             var image = Image.FromStream(ms);
             var predictions = yolo.Predict(image);  // now you can use numsharp to parse output data like this : var ret = yolo.Predict(image,useNumpy:true);
                                                     // draw box
-            using var graphics = Graphics.FromImage(image);
             var removed = predictions.Where(x => !Filter.Contains(x.Label.Name)).ToList();
             foreach (var item in removed)
             {
                 predictions.Remove(item);
             }
+            /*
+            using var graphics = Graphics.FromImage(image);
             foreach (var prediction in predictions) // iterate predictions to draw results
             {
                 double score = Math.Round(prediction.Score, 2);
@@ -84,7 +86,51 @@ namespace BMC.CCTVMonitoring.Helpers
                                 new Font("Consolas", 16, GraphicsUnit.Pixel), new SolidBrush(prediction.Label.Color),
                                 new PointF(x, y));
             }
-            
+            */
+            var desc = string.Empty;
+            using (Graphics graphics = Graphics.FromImage(image))
+            {
+                graphics.CompositingQuality = CompositingQuality.Default;
+                graphics.SmoothingMode = SmoothingMode.Default;
+                graphics.InterpolationMode = InterpolationMode.Default;
+
+                // Define Text Options
+                Font drawFont = new Font("consolas", 11, FontStyle.Regular);
+
+                SolidBrush fontBrush = new SolidBrush(Color.Black);
+
+
+                // Define BoundingBox options
+                Pen pen = new Pen(Color.Yellow, 2.0f);
+                SolidBrush colorBrush = new SolidBrush(Color.Yellow);
+                var originalImageHeight = image.Height;
+                var originalImageWidth = image.Width;
+                foreach (var pred in predictions)
+                {
+
+
+                    var x = Math.Max(pred.Rectangle.X, 0);
+                    var y = Math.Max(pred.Rectangle.Y, 0);
+                    var width = Math.Min(originalImageWidth - x, pred.Rectangle.Width);
+                    var height = Math.Min(originalImageHeight - y, pred.Rectangle.Height);
+
+                    ////////////////////////////////////////////////////////////////////////////////////////////
+                    // *** Note that the output is already scaled to the original image height and width. ***
+                    ////////////////////////////////////////////////////////////////////////////////////////////
+
+                    // Bounding Box Text
+                    string text = $"{pred.Label.Name} [{pred.Score}]";
+                    desc += text + ", ";
+                    SizeF size = graphics.MeasureString(text, drawFont);
+                    Point atPoint = new Point((int)x, (int)y - (int)size.Height - 1);
+                    // Draw text on image 
+                    graphics.FillRectangle(colorBrush, (int)x, (int)(y - size.Height - 1), (int)size.Width, (int)size.Height);
+                    graphics.DrawString(text, drawFont, fontBrush, atPoint);
+                    // Draw bounding box on image
+                    graphics.DrawRectangle(pen, x, y, width, height);
+                }
+            }
+             
             var newObj = new DetectedObject() { DetectedTime = DateTime.Now, No = No, Predictions = predictions, AnotatedImage = image };
             ListDetections.Enqueue(newObj);
             //keep the max items = 100

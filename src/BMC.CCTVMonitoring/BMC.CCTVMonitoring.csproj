@@ -27,10 +27,14 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.1" />
     <PackageReference Include="NAudio" Version="2.2.1" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="SkiaSharp" Version="2.88.7" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Win32" Version="2.88.7" />
+    <PackageReference Include="SkiaSharp.Views.Desktop.Common" Version="2.88.7" />
     <PackageReference Include="System.Drawing.Common" Version="8.0.1" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\IDCH.Storage\IDCH.Storage.csproj" />
     <ProjectReference Include="..\Yolov7net\IVilson.AI.Yolov7net.csproj" />
   </ItemGroup>
 
