@@ -61,32 +61,32 @@ public partial class MainViewModel : ViewModelBase
         set => SetProperty(ref _status, value);
     }
  
-    private bool _PatrolMode = true;
+    //private bool _PatrolMode = true;
     public bool PatrolMode
     {
-        get => _PatrolMode;
-        set => SetProperty(ref _PatrolMode, value);
+        get => dataConfig.PatrolMode;
+        set => SetProperty(ref dataConfig.PatrolMode, value);
     }
 
-    private bool _PushToCloud = false;
+    //private bool _PushToCloud = false;
     public bool PushToCloud
     {
-        get => _PushToCloud;
-        set => SetProperty(ref _PushToCloud, value);
+        get => dataConfig.PushToCloud;
+        set => SetProperty(ref dataConfig.PushToCloud, value);
     }
     
-    private bool _SaveToDisk = true;
+    //private bool _SaveToDisk = true;
     public bool SaveToDisk
     {
-        get => _SaveToDisk;
-        set => SetProperty(ref _SaveToDisk, value);
+        get => dataConfig.SaveToDisk;
+        set => SetProperty(ref dataConfig.SaveToDisk, value);
     }
 
-    private bool _PlaySound = true;
+    //private bool _PlaySound = true;
     public bool PlaySound
     {
-        get => _PlaySound;
-        set => SetProperty(ref _PlaySound, value);
+        get => dataConfig.PlaySound;
+        set => SetProperty(ref dataConfig.PlaySound, value);
     }
     public bool IsSoundPlaying { get; set; }
     public ObjectDetector detector { set; get; }
@@ -98,7 +98,7 @@ public partial class MainViewModel : ViewModelBase
     HttpClient client { set; get; }
     ObjectContext context { set; get; }
     StorageObjectService storageSvc { set; get; }
-
+    public bool IsRunning { get; set; }
     int Delay = 5000;
     public MainViewModel()
     {
@@ -195,7 +195,15 @@ public partial class MainViewModel : ViewModelBase
         setting.SecretKey = dataConfig.StorageSecret;
         setting.AccessKey = dataConfig.StorageAccess;
         storageSvc = new(setting);
+
+        if (!IsRunning && dataConfig.AutoRun) Start();
     }
+
+    public void SaveSettings()
+    {
+        this.dataConfig?.Save();
+    }
+
     void CaptureCCTV()
     {
         var filters = Labels.Where(x=>x.Selected).Select(x => x.Name).ToList();
@@ -221,13 +229,17 @@ public partial class MainViewModel : ViewModelBase
     }
     public void Start()
     {
+        if (IsRunning) return;
         timer.Start();
+        IsRunning = true;
         this.Status = "App is running";
 
     }
     public void Stop()
     {
+        if (!IsRunning) return;
         timer.Stop();
+        IsRunning = false;
         this.Status = "App has been stopped";
     }
 }

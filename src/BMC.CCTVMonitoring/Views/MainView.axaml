@@ -18,7 +18,7 @@
 					<Expander.Header>
 						Settings
 					</Expander.Header>
-					<Grid RowDefinitions="*,*,*,*" ColumnDefinitions="*,*">
+					<Grid RowDefinitions="*,*,*,*,*" ColumnDefinitions="*,*">
 						<TextBlock Grid.Row="0" Grid.Column="0"
 								   VerticalAlignment="Center">Patrol Mode</TextBlock>
 						<CheckBox Margin="5" Grid.Row="0" Grid.Column="1" IsChecked="{Binding PatrolMode}" />
@@ -31,6 +31,7 @@
 						<TextBlock Grid.Row="3" Grid.Column="0"
 								   VerticalAlignment="Center">Save to Disk</TextBlock>
 						<CheckBox Margin="5" Grid.Row="3" Grid.Column="1" IsChecked="{Binding SaveToDisk}" />
+						<Button HorizontalAlignment="Right" Margin="5" Click="OnSaveClick" Grid.Row="4" Grid.ColumnSpan="2" >Save</Button>
 
 					</Grid>
 				</Expander>

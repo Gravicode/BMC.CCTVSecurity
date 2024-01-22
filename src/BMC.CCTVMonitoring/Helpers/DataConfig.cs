@@ -31,7 +31,11 @@ namespace BMC.CCTVMonitoring.Helpers
         public string StorageAccess { set; get; }
         public string StorageSecret { set; get; }
         public string StorageBucket { set; get; }
-
+        public bool AutoRun { get; set; }
+        public bool SaveToDisk ;//{ get; set; }
+        public bool PushToCloud ;//{ get; set; }
+        public bool PlaySound ;//{ get; set; }
+        public bool PatrolMode ;//{ get; set; }
         public List<string> CCTVURL { set; get; }
         public DataConfig()
         {
@@ -64,6 +68,11 @@ namespace BMC.CCTVMonitoring.Helpers
             StorageAccess = "30S2OUDU3IY39A6PQJ8L";
             StorageSecret = "80afWLvL8GOFG0qUUoPn3x9jdAuOZNtUnCruwgUL";
             StorageBucket = "cctv";
+            AutoRun = true;
+
+            PlaySound = true;
+            PushToCloud = true;
+            PatrolMode = true;
         }
 
         public void Init()
@@ -112,6 +121,12 @@ namespace BMC.CCTVMonitoring.Helpers
             this.MqttPass = obj.MqttPass;
             this.MqttUser = obj.MqttUser;
             this.SnapshotDir = obj.SnapshotDir;
+            this.AutoRun = obj.AutoRun;
+
+            this.PatrolMode = obj.PatrolMode;
+            this.PlaySound = obj.PlaySound;
+            this.PushToCloud = obj.PushToCloud;
+            this.SaveToDisk = obj.SaveToDisk;
 
             this.StorageAccess = obj.StorageAccess;
             this.StorageBucket = obj.StorageBucket;

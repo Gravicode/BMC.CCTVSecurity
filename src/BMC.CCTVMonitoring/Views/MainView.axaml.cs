@@ -13,6 +13,12 @@ public partial class MainView : UserControl
         //if (vm == null) vm = new MainViewModel();
         //this.DataContext = vm;
     }
+    private void OnSaveClick(object sender, RoutedEventArgs e)
+    {
+        //do something on click
+        var vm = this.DataContext as MainViewModel;
+        vm.SaveSettings();
+    }
 
     public void Start(object sender, RoutedEventArgs args)
     {
